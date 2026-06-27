@@ -1,0 +1,20 @@
+{
+  "crons": [
+    {
+      "path": "/api/sync?scope=calendar",
+      "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/sync?scope=roster",
+      "schedule": "0 5 * * 1"
+    },
+    {
+      "path": "/api/sync?scope=results",
+      "schedule": "*/5 * * * *"
+    },
+    {
+      "path": "/api/sync?scope=full",
+      "schedule": "*/30 * * * *"
+    }
+  ]
+}

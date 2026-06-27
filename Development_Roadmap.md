@@ -1,19 +1,92 @@
-# Development [Roadmap.md](http://Roadmap.md)
+# Development Roadmap
 
-1. **Setup & UI:** Initialize shadcn/ui, setup global fonts and color theme (F1 style).
+> Подавать в Cursor/Claude Code по одной задаче за раз, а не весь файл целиком. После каждой задачи — проверка (запуск `npm run dev`, визуальная проверка) перед переходом к следующей. Задачи внутри фазы можно делать строго по порядку, фазы местами почти не пересекаются по файлам — это снижает риск, что агент "подправит" уже готовый код, решая новую задачу.
 
-2. **Data Model:** Create Supabase tables and types in `types/database.types.ts`.
+---
 
-3. **API Integration:** Create helper functions to fetch OpenF1 API data (calendar, drivers).
+## Phase 0 — Подготовка (если ещё не сделано)
 
-4. **Layout:** Implement Header, Footer, and Main Navigation.
+1. Создать репозиторий на GitHub, инициализировать Next.js (`npx create-next-app@latest`, TypeScript / ESLint / Tailwind / App Router / Turbopack — Yes).
+2. Подключить репозиторий к Vercel, проверить автодеплой на тестовом коммите.
+3. Создать проект в Supabase, сохранить `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY` в `.env.local` и в Vercel Environment Variables.
 
-5. **Main Page:** Build "Next Race" countdown card and "Calendar" grid.
+## Phase 1 — Тулинг и конвенции
 
-6. **Prediction Logic:** Create "Grid" component for race/qualifying predictions.
+4. Настроить ESLint + Prettier, добавить `npm run lint` / `npm run format`.
+5. Установить shadcn/ui, инициализировать (`npx shadcn@latest init`).
+6. Перенести дизайн-токены из `UI_Guide.md` в `app/globals.css` (CSS-переменные light/dark).
+7. Положить `.cursor/rules/general.mdc` и `.cursor/rules/design-system.mdc` в проект.
+8. Создать скелет папок из `Architecture.md` (раздел 2) — пустые файлы-заглушки с TODO-комментариями.
 
-7. **Storage:** Implement saving predictions to Supabase.
+## Phase 2 — База данных
 
-8. **Results & Scoring:** Build result comparison logic and user leaderboard.
+9. Выполнить SQL-миграцию по схеме из `Architecture.md` (раздел 3) в Supabase.
+10. Настроить RLS-политики (раздел 7 `Architecture.md`) — отдельная задача, не смешивать с созданием таблиц.
+11. Сгенерировать TypeScript-типы из Supabase (`supabase gen types typescript`) и сверить с `types/*.ts`.
+12. Реализовать `middleware.ts` — выдача анонимного `user_id` в cookie при первом визите.
+13. Подготовить `lib/api/seed-data.ts` — статичный список пилотов/команд сезона 2026 (фоллбэк на случай неполных данных API при старте).
 
-9. **Final Polish:** Mobile responsiveness (320px+), animations with Framer Motion.
+## Phase 3 — Интеграция API
+
+14. Написать `lib/api/openf1.ts` — функции получения календаря, пилотов, команд.
+15. Написать `lib/api/jolpica.ts` — те же функции как фоллбэк.
+16. Написать `lib/api/sync.ts` — нормализация ответов API в формат таблиц БД + запись через `lib/supabase/admin.ts`.
+17. Создать `app/api/sync/route.ts` + настроить Vercel Cron (интервалы — по таблице из `Architecture.md`, раздел 6). Логировать каждый запуск в `sync_logs`.
+18. Ручной тест: дёрнуть `/api/sync` вручную, проверить, что календарь/пилоты/команды появились в Supabase.
+
+## Phase 4 — Общий layout
+
+19. Компонент `Header.tsx` + `Navbar.tsx` (мобильное меню отдельно).
+20. Компонент `Footer.tsx`.
+21. `ThemeToggle.tsx` (light/dark, без сохранения в localStorage — см. ограничение на browser storage в артефактах, для самого сайта это не ограничение, просто использовать обычный подход Next.js + cookie или next-themes).
+22. `shared/LoadingSkeleton.tsx`, `shared/ErrorState.tsx`, `shared/EmptyState.tsx` — три базовых компонента, переиспользуемые везде дальше.
+
+## Phase 5 — Главная страница
+
+23. `Countdown.tsx` — таймер до ближайшего этапа.
+24. Блок "Ближайший этап" на главной (трасса, страна, даты, кнопка "Зробити прогноз").
+25. Блок "Останні результати" на главной.
+26. `CalendarGrid.tsx` — превью календаря на главной (несколько ближайших этапов).
+
+## Phase 6 — Календарь
+
+27. Страница `/calendar` — полный список этапов, `RaceCard.tsx` со статусом (upcoming/live/completed).
+28. Переход с карточки этапа на страницу квалификации/гонки в зависимости от статуса.
+
+## Phase 7 — Прогноз: квалификация
+
+29. `DriverModal.tsx` — список пилотов, поиск, исключение уже выбранных.
+30. `PredictionSlot.tsx` + `PredictionGrid.tsx` — переключение режима Подиум/TOP-10.
+31. Логика дедлайна (5 минут до квалификации) — скрытие формы + серверная проверка при попытке сохранить.
+32. Сохранение прогноза (`predictions`, upsert) + форма имени для нового анонимного пользователя.
+
+## Phase 8 — Прогноз: гонка
+
+33. Переиспользовать `PredictionGrid` для гонки.
+34. `TeamCard.tsx` + `DnfPicker.tsx` — выбор команды-схода / "усі фінішують" (взаимоисключающе).
+35. Дедлайн для гонки (аналогично Phase 7, отдельная проверка от квалификации).
+
+## Phase 9 — Результаты и очки
+
+36. `lib/scoring/calculate.ts` — движок подсчёта очков по таблице из `TZ.md` (раздел 14).
+37. Запуск пересчёта очков автоматически при переходе статуса этапа в `completed` (триггер из `/api/sync` или отдельный cron).
+38. `ResultsTable.tsx` + `PointsBreakdown.tsx` — отображение результатов этапа и набранных очков.
+
+## Phase 10 — Рейтинг и история
+
+39. `LeaderboardTable.tsx` — с тай-брейком (раздел 12 `TZ.md`).
+40. Страница `/history` — список прогнозов пользователя и итоговые очки.
+41. Страница `/profile` — отображаемое имя, возможность сменить.
+
+## Phase 11 — Админка
+
+42. `app/admin/layout.tsx` — проверка пароля из переменной окружения.
+43. Просмотр `sync_logs` + кнопка "Синхронізувати зараз".
+44. Ручное изменение статуса этапа и ручная корректировка результатов (форма поверх существующих таблиц).
+
+## Phase 12 — Полировка
+
+45. Адаптивность: проверка на 320px, 768px, 1024px+ для каждой страницы.
+46. Анимации Framer Motion (появление карточек, переход пилота в слот).
+47. Lighthouse-прогон, исправление просадок по Performance/Accessibility/SEO.
+48. Финальный обзор error/empty states по чек-листу из `TZ.md` (раздел 15).
