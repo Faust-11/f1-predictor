@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { getDriversWithTeams } from "@/lib/data/drivers";
 import { getUserPredictionsForRace } from "@/lib/data/predictions";
 import { getRaceById } from "@/lib/data/races";
+import { getRaceGaps } from "@/lib/data/race-gaps";
 import { getQualifyingResults, getRaceResults } from "@/lib/data/results";
 import { getTeams } from "@/lib/data/teams";
 import { getCurrentUser } from "@/lib/data/user";
@@ -70,9 +71,10 @@ export default async function RacePage({
 
   let resultsNode = null;
   if (race.status === "completed") {
-    const [qualifying, raceResults] = await Promise.all([
+    const [qualifying, raceResults, gaps] = await Promise.all([
       getQualifyingResults(raceId),
       getRaceResults(raceId),
+      getRaceGaps(race, drivers),
     ]);
     const driverMap = new Map(drivers.map((d) => [d.id, d]));
     const driverTeam = new Map(drivers.map((d) => [d.id, d.teamId]));
@@ -90,6 +92,7 @@ export default async function RacePage({
               dnf: r.dnf,
             }))}
             driverMap={driverMap}
+            gaps={gaps}
           />
         ) : (
           <EmptyState message={strings.states.resultsEmpty} />
