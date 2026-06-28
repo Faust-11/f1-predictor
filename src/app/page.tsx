@@ -15,6 +15,8 @@ import {
   getRaces,
 } from "@/lib/data/races";
 import { getRaceResults } from "@/lib/data/results";
+import { getStandings } from "@/lib/data/standings";
+import { StandingsCard } from "@/components/leaderboard/StandingsCard";
 import { formatDateUk } from "@/lib/i18n/date";
 import { strings } from "@/lib/i18n/strings";
 import { isPredictionLocked } from "@/lib/predictions/deadline";
@@ -141,6 +143,24 @@ async function LatestResults({ race }: { race: Race }) {
   );
 }
 
+async function SeasonStandingsSection() {
+  let standings;
+  try {
+    standings = await getStandings();
+  } catch {
+    return null;
+  }
+  if (standings.drivers.length === 0 && standings.constructors.length === 0) {
+    return null;
+  }
+  return (
+    <StandingsCard
+      drivers={standings.drivers}
+      constructors={standings.constructors}
+    />
+  );
+}
+
 export default async function Home() {
   let races: Race[];
   let nextRace: Race | null;
@@ -186,6 +206,11 @@ export default async function Home() {
           <LatestResults race={latestRace} />
         </section>
       )}
+
+      <section>
+        <SectionHeading>{strings.standings.title}</SectionHeading>
+        <SeasonStandingsSection />
+      </section>
 
       <section>
         <div className="mb-4 flex items-center justify-between">
