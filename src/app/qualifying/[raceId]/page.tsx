@@ -6,7 +6,7 @@ import { PointsBreakdown } from "@/components/results/PointsBreakdown";
 import { ResultsTable } from "@/components/results/ResultsTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { getDriversWithTeams } from "@/lib/data/drivers";
+import { getDriverMap, getDriversWithTeams } from "@/lib/data/drivers";
 import { getUserPredictionsForRace } from "@/lib/data/predictions";
 import { getRaceById } from "@/lib/data/races";
 import { getQualifyingResults, getRaceResults } from "@/lib/data/results";
@@ -67,12 +67,15 @@ export default async function QualifyingPage({
 
   let resultsNode = null;
   if (race.status === "completed") {
-    const [qualifying, raceResults] = await Promise.all([
+    const [qualifying, raceResults, driverMap] = await Promise.all([
       getQualifyingResults(raceId),
       getRaceResults(raceId),
+      getDriverMap(),
     ]);
-    const driverMap = new Map(drivers.map((d) => [d.id, d]));
-    const driverTeam = new Map(drivers.map((d) => [d.id, d.teamId]));
+    // Map every driver id (incl. duplicate rows) to its team via the canonical map.
+    const driverTeam = new Map(
+      [...driverMap].map(([id, d]) => [id, d.teamId]),
+    );
     const ctx = buildScoringContext(qualifying, raceResults, driverTeam);
     const { items, total } = buildBreakdownItems(qualiPredictions, ctx);
 
