@@ -24,10 +24,17 @@ export async function getDriversWithTeams(): Promise<DriverWithTeam[]> {
     throw new Error(error.message);
   }
 
-  return ((data ?? []) as DriverWithTeamRow[]).map((row) => ({
-    ...mapDriverRow(row),
-    team: row.teams ? mapTeamRow(row.teams) : null,
-  }));
+  return ((data ?? []) as DriverWithTeamRow[]).map((row) => {
+    const driver = mapDriverRow(row);
+    return {
+      ...driver,
+      // Curated local headshots (public/drivers/CODE.webp) are the authoritative
+      // source — OpenF1 no longer serves real photos. Falls back to the code
+      // initials avatar if a file is missing.
+      photoUrl: row.code ? `/drivers/${row.code.toUpperCase()}.webp` : driver.photoUrl,
+      team: row.teams ? mapTeamRow(row.teams) : null,
+    };
+  });
 }
 
 /** Lookup map keyed by driver id. */
