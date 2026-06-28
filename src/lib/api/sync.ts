@@ -22,6 +22,7 @@ import type {
 } from "./normalized";
 import { SEED_DRIVERS, SEED_TEAMS } from "./seed-data";
 import { writeSyncLog } from "./sync-log-helper";
+import { recalculateRacePoints } from "@/lib/scoring/recalculate";
 
 const RESULTS_WINDOW_MS = 6 * 60 * 60 * 1000;
 
@@ -423,6 +424,17 @@ async function syncResults(): Promise<SyncJobResult> {
 
       const counts = await persistResults(race.id, payload);
       synced += 1;
+
+      // When race results land the race is marked completed — recalculate points.
+      if (counts.race > 0) {
+        const updated = await recalculateRacePoints(race.id);
+        await writeSyncLog({
+          source: payload.source,
+          endpoint: `scoring/round/${race.round}`,
+          status: "success",
+          message: `Recalculated points for ${updated} prediction(s)`,
+        });
+      }
 
       await writeSyncLog({
         source: payload.source,

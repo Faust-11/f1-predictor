@@ -1,6 +1,11 @@
 import type { Metadata } from "next";
 import { Inter, Titillium_Web } from "next/font/google";
+import { cookies } from "next/headers";
 
+import { Header } from "@/components/layout/Header";
+import { Footer } from "@/components/layout/Footer";
+import { Toaster } from "@/components/ui/toast";
+import { THEME_COOKIE } from "@/lib/constants";
 import { strings } from "@/lib/i18n/strings";
 import "./globals.css";
 
@@ -16,21 +21,34 @@ const body = Inter({
 });
 
 export const metadata: Metadata = {
-  title: strings.app.title,
+  title: {
+    default: strings.app.title,
+    template: `%s · ${strings.app.title}`,
+  },
   description: strings.app.tagline,
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const cookieStore = await cookies();
+  const isDark = cookieStore.get(THEME_COOKIE)?.value === "dark";
+
   return (
     <html
       lang="uk"
-      className={`${heading.variable} ${body.variable} h-full antialiased`}
+      className={`${heading.variable} ${body.variable} h-full antialiased${isDark ? " dark" : ""}`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col">
+        <Header />
+        <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:py-8">
+          {children}
+        </main>
+        <Footer />
+        <Toaster />
+      </body>
     </html>
   );
 }
