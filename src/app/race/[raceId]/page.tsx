@@ -74,7 +74,7 @@ export default async function RacePage({
     const [qualifying, raceResults, gaps] = await Promise.all([
       getQualifyingResults(raceId),
       getRaceResults(raceId),
-      getRaceGaps(race, drivers),
+      getRaceGaps(race),
     ]);
     const driverMap = new Map(drivers.map((d) => [d.id, d]));
     const driverTeam = new Map(drivers.map((d) => [d.id, d.teamId]));
