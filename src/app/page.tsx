@@ -16,7 +16,9 @@ import {
 } from "@/lib/data/races";
 import { getRaceResults } from "@/lib/data/results";
 import { getStandings } from "@/lib/data/standings";
+import { getNews } from "@/lib/data/news";
 import { StandingsCard } from "@/components/leaderboard/StandingsCard";
+import { NewsCard } from "@/components/leaderboard/NewsCard";
 import { formatDateUk } from "@/lib/i18n/date";
 import { strings } from "@/lib/i18n/strings";
 import { isPredictionLocked } from "@/lib/predictions/deadline";
@@ -161,6 +163,19 @@ async function SeasonStandingsSection() {
   );
 }
 
+async function LatestNewsSection() {
+  let sources;
+  try {
+    sources = await getNews();
+  } catch {
+    return null;
+  }
+  if (!sources.some((s) => s.items.length > 0)) {
+    return null;
+  }
+  return <NewsCard sources={sources} />;
+}
+
 export default async function Home() {
   let races: Race[];
   let nextRace: Race | null;
@@ -207,9 +222,15 @@ export default async function Home() {
         </section>
       )}
 
-      <section>
-        <SectionHeading>{strings.standings.title}</SectionHeading>
-        <SeasonStandingsSection />
+      <section className="grid gap-8 lg:grid-cols-2 lg:items-start">
+        <div>
+          <SectionHeading>{strings.standings.title}</SectionHeading>
+          <SeasonStandingsSection />
+        </div>
+        <div>
+          <SectionHeading>{strings.news.title}</SectionHeading>
+          <LatestNewsSection />
+        </div>
       </section>
 
       <section>
