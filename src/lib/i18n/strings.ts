@@ -92,6 +92,14 @@ export const strings = {
     total: "Разом",
     noPrediction: "Ви не робили прогноз на цей етап.",
   },
+  standings: {
+    title: "Турнірна таблиця",
+    drivers: "Пілоти",
+    constructors: "Команди",
+    points: "Очки",
+    wins: "Перемоги",
+    empty: "Турнірна таблиця з'явиться після першого етапу.",
+  },
   leaderboard: {
     title: "Рейтинг користувачів",
     rank: "Місце",
