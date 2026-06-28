@@ -7,11 +7,13 @@ import { toast } from "@/components/ui/toast";
 import { strings } from "@/lib/i18n/strings";
 
 interface ShareButtonProps {
-  /** Pre-composed prediction text shared alongside the page link. */
+  /** Pre-composed prediction text shared alongside the link. */
   text: string;
+  /** Relative path the share links to (e.g. "/race/123"). */
+  path: string;
 }
 
-export function ShareButton({ text }: ShareButtonProps) {
+export function ShareButton({ text, path }: ShareButtonProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -25,13 +27,12 @@ export function ShareButton({ text }: ShareButtonProps) {
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, []);
 
-  const pageUrl = () =>
-    typeof window !== "undefined" ? window.location.href : "";
+  const absoluteUrl = () => `${window.location.origin}${path}`;
 
   async function copyLink() {
     setOpen(false);
     try {
-      await navigator.clipboard.writeText(pageUrl());
+      await navigator.clipboard.writeText(absoluteUrl());
       toast(strings.share.copied, "success");
     } catch {
       toast(strings.share.copyFailed, "error");
@@ -40,10 +41,17 @@ export function ShareButton({ text }: ShareButtonProps) {
 
   function shareTelegram() {
     setOpen(false);
-    const url = `https://t.me/share/url?url=${encodeURIComponent(
-      pageUrl(),
+    const tg = `https://t.me/share/url?url=${encodeURIComponent(
+      absoluteUrl(),
     )}&text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank", "noopener,noreferrer");
+    // Programmatic anchor click — reliable and not blocked like window.open.
+    const a = document.createElement("a");
+    a.href = tg;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   }
 
   return (
