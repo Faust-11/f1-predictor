@@ -4,6 +4,8 @@ import { ArrowRight, Trophy } from "lucide-react";
 import { Countdown } from "@/components/race/Countdown";
 import { CalendarGrid } from "@/components/race/CalendarGrid";
 import { TrackOutline } from "@/components/race/TrackOutline";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -114,9 +116,23 @@ async function LatestResults({ race }: { race: Race }) {
     return <EmptyState message={strings.states.resultsEmpty} />;
   }
 
+  const byPosition = new Map(podium.map((r) => [r.position, r]));
+  // Visual order on the podium: 2nd (left) · 1st (center, raised) · 3rd (right).
+  const layout: Array<{
+    pos: number;
+    step: string;
+    avatar: string;
+    ring: string;
+    num: string;
+  }> = [
+    { pos: 2, step: "h-16 sm:h-20", avatar: "size-16 sm:size-20", ring: "ring-zinc-400", num: "text-zinc-400" },
+    { pos: 1, step: "h-24 sm:h-28", avatar: "size-20 sm:size-24", ring: "ring-yellow-400", num: "text-yellow-400" },
+    { pos: 3, step: "h-12 sm:h-16", avatar: "size-16 sm:size-20", ring: "ring-amber-600", num: "text-amber-600" },
+  ];
+
   return (
     <Card>
-      <CardContent className="flex flex-col gap-3 p-4 sm:p-6">
+      <CardContent className="flex flex-col gap-4 p-4 sm:p-6">
         <div className="flex items-center justify-between">
           <p className="font-medium">{race.name}</p>
           <Button
@@ -128,37 +144,48 @@ async function LatestResults({ race }: { race: Race }) {
             <ArrowRight className="size-3.5" />
           </Button>
         </div>
-        <ol className="flex flex-col gap-2">
-          {podium.map((r) => {
-            const driver = driverMap.get(r.driverId);
+
+        <div className="flex items-end justify-center gap-2 pt-2 sm:gap-5">
+          {layout.map((slot) => {
+            const result = byPosition.get(slot.pos);
+            if (!result) return null;
+            const driver = driverMap.get(result.driverId);
             return (
-              <li
-                key={r.driverId}
-                className="flex items-center gap-3 rounded-md bg-secondary/60 px-3 py-2"
+              <div
+                key={slot.pos}
+                className="flex w-1/3 max-w-[150px] flex-col items-center gap-2"
               >
-                <span className="flex size-6 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
-                  {r.position}
-                </span>
-                <span
-                  className="h-5 w-1 rounded-full"
-                  style={{
-                    backgroundColor: driver?.team?.colorHex ?? "transparent",
-                  }}
-                />
-                <span className="font-medium">
-                  {driver
-                    ? `${driver.firstName} ${driver.lastName}`
-                    : strings.race.driver}
-                </span>
-                {driver?.team?.name && (
-                  <span className="ml-auto text-xs text-muted-foreground">
-                    {driver.team.name}
-                  </span>
-                )}
-              </li>
+                <Avatar className={cn(slot.avatar, "ring-2", slot.ring)}>
+                  {driver?.photoUrl && (
+                    <AvatarImage src={driver.photoUrl} alt={driver.lastName} />
+                  )}
+                  <AvatarFallback>{driver?.code ?? "?"}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0 text-center">
+                  <p className="truncate text-sm font-semibold">
+                    {driver
+                      ? `${driver.firstName} ${driver.lastName}`
+                      : strings.race.driver}
+                  </p>
+                  {driver?.team?.name && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {driver.team.name}
+                    </p>
+                  )}
+                </div>
+                <div
+                  className={cn(
+                    "flex w-full items-start justify-center rounded-t-lg bg-secondary pt-2 font-heading text-2xl font-bold",
+                    slot.step,
+                    slot.num,
+                  )}
+                >
+                  {slot.pos}
+                </div>
+              </div>
             );
           })}
-        </ol>
+        </div>
       </CardContent>
     </Card>
   );
