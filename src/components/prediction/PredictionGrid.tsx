@@ -5,6 +5,7 @@ import { useState, useTransition } from "react";
 import { DnfPicker } from "@/components/prediction/DnfPicker";
 import { DriverModal } from "@/components/prediction/DriverModal";
 import { PredictionSlot } from "@/components/prediction/PredictionSlot";
+import { ShareButton } from "@/components/prediction/ShareButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/toast";
@@ -126,8 +127,31 @@ export function PredictionGrid({
     });
   }
 
+  const shareText = (() => {
+    const lines: string[] = [
+      kind === "qualifying"
+        ? strings.share.qualifyingHeader
+        : strings.share.raceHeader,
+    ];
+    const picked = positions.filter((p) => slots[String(p)]);
+    for (const p of picked) {
+      const d = driverMap.get(slots[String(p)]);
+      if (d) lines.push(`${p}. ${d.firstName} ${d.lastName}`);
+    }
+    if (kind === "race") {
+      if (dnf?.kind === "all") lines.push(strings.share.allFinish);
+      else if (dnf?.kind === "team") {
+        const team = teams.find((t) => t.id === dnf.teamId);
+        if (team) lines.push(`${strings.share.dnf}: ${team.name}`);
+      }
+    }
+    if (picked.length === 0) lines.push(strings.share.invite);
+    return lines.join("\n");
+  })();
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex items-start gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-6">
       {!locked && (
         <div className="inline-flex w-fit rounded-md border border-border p-1">
           {(["podium", "top10"] as const).map((m) => (
@@ -214,6 +238,8 @@ export function PredictionGrid({
         takenIds={takenIds}
         onSelect={selectDriver}
       />
+      </div>
+      <ShareButton text={shareText} />
     </div>
   );
 }
