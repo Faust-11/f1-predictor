@@ -1,5 +1,4 @@
 import { ACTIVE_SEASON_ID } from "@/lib/constants";
-import type { DriverWithTeam } from "@/lib/data/drivers";
 import type { Race } from "@/types/race";
 
 const BASE_URL = "https://api.jolpi.ca/ergast/f1";
@@ -14,7 +13,7 @@ interface JolpicaScheduleRace {
 
 interface JolpicaResultRow {
   position: string;
-  Driver: { permanentNumber?: string };
+  Driver: { code?: string; permanentNumber?: string };
   Time?: { time?: string };
 }
 
@@ -52,14 +51,12 @@ async function resolveJolpicaRound(race: Race): Promise<number | null> {
 }
 
 /**
- * Finishing gaps for a race, keyed by our driver id.
+ * Finishing gaps for a race, keyed by driver CODE (e.g. "HAM").
  * Winner → total time (e.g. "1:23:06.801"); others → "+2.974". From Jolpica.
- * Returns an empty map on any failure so the page degrades gracefully.
+ * Keyed by code (not our driver id) so it is immune to duplicate/again-synced
+ * driver rows. Returns an empty map on any failure so the page degrades gracefully.
  */
-export async function getRaceGaps(
-  race: Race,
-  drivers: DriverWithTeam[],
-): Promise<Map<string, string>> {
+export async function getRaceGaps(race: Race): Promise<Map<string, string>> {
   const gaps = new Map<string, string>();
 
   const round = await resolveJolpicaRound(race);
@@ -72,19 +69,11 @@ export async function getRaceGaps(
   const rows = data?.MRData.RaceTable.Races?.[0]?.Results ?? [];
   if (rows.length === 0) return gaps;
 
-  const idByNumber = new Map<number, string>();
-  for (const d of drivers) {
-    if (d.number != null) idByNumber.set(d.number, d.id);
-  }
-
   for (const row of rows) {
     const time = row.Time?.time;
-    const num = row.Driver.permanentNumber
-      ? Number(row.Driver.permanentNumber)
-      : null;
-    if (!time || num == null) continue;
-    const driverId = idByNumber.get(num);
-    if (driverId) gaps.set(driverId, time);
+    const code = row.Driver.code?.toUpperCase();
+    if (!time || !code) continue; // no code, or retired / DNS (no finishing gap)
+    gaps.set(code, time);
   }
 
   return gaps;
