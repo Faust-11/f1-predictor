@@ -48,12 +48,50 @@ export default async function HistoryPage() {
 
   const raceMap = new Map(races.map((r) => [r.id, r]));
 
-  // Sort by race round desc, then by type.
-  const sorted = [...predictions].sort((a, b) => {
-    const roundA = raceMap.get(a.raceId)?.round ?? 0;
-    const roundB = raceMap.get(b.raceId)?.round ?? 0;
-    if (roundB !== roundA) return roundB - roundA;
-    return a.type.localeCompare(b.type);
+  // One card per race session: all race_* predictions (positions + DNF) merge
+  // into a single "Гонка" card, qualifying_* into a single "Кваліфікація" card.
+  type Session = "qualifying" | "race";
+  interface Group {
+    key: string;
+    raceId: string;
+    session: Session;
+    round: number;
+    name: string;
+    completed: boolean;
+    points: number;
+    scored: boolean;
+  }
+
+  const groups = new Map<string, Group>();
+  for (const prediction of predictions) {
+    const race = raceMap.get(prediction.raceId);
+    const session: Session = prediction.type.startsWith("qualifying")
+      ? "qualifying"
+      : "race";
+    const key = `${prediction.raceId}__${session}`;
+
+    const group = groups.get(key) ?? {
+      key,
+      raceId: prediction.raceId,
+      session,
+      round: race?.round ?? 0,
+      name: race?.name ?? strings.race.driver,
+      completed: race?.status === "completed",
+      points: 0,
+      scored: false,
+    };
+
+    if (prediction.points != null) {
+      group.points += prediction.points;
+      group.scored = true;
+    }
+    groups.set(key, group);
+  }
+
+  // Round desc; within a round qualifying before race.
+  const sorted = [...groups.values()].sort((a, b) => {
+    if (b.round !== a.round) return b.round - a.round;
+    return a.session.localeCompare(b.session);
   });
 
   return (
@@ -63,30 +101,28 @@ export default async function HistoryPage() {
       </h1>
 
       <ul className="flex flex-col gap-3">
-        {sorted.map((prediction) => {
-          const race = raceMap.get(prediction.raceId);
-          const completed = race?.status === "completed";
+        {sorted.map((group) => {
           const href =
-            prediction.type.startsWith("qualifying") && race
-              ? `/qualifying/${race.id}`
-              : `/race/${prediction.raceId}`;
+            group.session === "qualifying"
+              ? `/qualifying/${group.raceId}`
+              : `/race/${group.raceId}`;
+          const label =
+            group.session === "qualifying"
+              ? strings.pages.qualifying
+              : strings.pages.race;
 
           return (
-            <li key={prediction.id}>
+            <li key={group.key}>
               <Link href={href}>
                 <Card className="transition-shadow duration-200 hover:shadow-md">
                   <CardContent className="flex items-center justify-between gap-3 p-4">
                     <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {race?.name ?? strings.race.driver}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {strings.history.type[prediction.type]}
-                      </p>
+                      <p className="truncate font-medium">{group.name}</p>
+                      <p className="text-xs text-muted-foreground">{label}</p>
                     </div>
-                    {completed && prediction.points != null ? (
+                    {group.completed && group.scored ? (
                       <span className="shrink-0 font-heading text-lg font-bold tabular-nums text-primary">
-                        {prediction.points} {strings.results.pointsShort}
+                        {group.points} {strings.results.pointsShort}
                       </span>
                     ) : (
                       <Badge variant="outline" className="shrink-0">
