@@ -2,15 +2,19 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { ClipboardList } from "lucide-react";
 
+import { ShareButton } from "@/components/prediction/ShareButton";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
+import { getDriverMap, type DriverWithTeam } from "@/lib/data/drivers";
 import { getAllUserPredictions } from "@/lib/data/predictions";
 import { getRaces } from "@/lib/data/races";
+import { getTeams } from "@/lib/data/teams";
 import { strings } from "@/lib/i18n/strings";
 import type { Prediction } from "@/types/prediction";
 import type { Race } from "@/types/race";
+import type { Team } from "@/types/team";
 
 export const dynamic = "force-dynamic";
 
@@ -18,14 +22,61 @@ export const metadata: Metadata = {
   title: strings.pages.history,
 };
 
+type Session = "qualifying" | "race";
+
+function composeShareText(
+  preds: Prediction[],
+  session: Session,
+  driverMap: Map<string, DriverWithTeam>,
+  teams: Team[],
+): string {
+  const lines: string[] = [
+    session === "qualifying"
+      ? strings.share.qualifyingHeader
+      : strings.share.raceHeader,
+  ];
+
+  const posPred = preds.find(
+    (p) => p.type.endsWith("podium") || p.type.endsWith("top10"),
+  );
+  if (posPred) {
+    const payload = posPred.payload as Record<string, string>;
+    const order = Object.keys(payload)
+      .map(Number)
+      .filter((n) => !Number.isNaN(n))
+      .sort((a, b) => a - b);
+    for (const pos of order) {
+      const driver = driverMap.get(payload[String(pos)]);
+      if (driver) lines.push(`${pos}. ${driver.firstName} ${driver.lastName}`);
+    }
+  }
+
+  const dnfPred = preds.find((p) => p.type === "race_dnf");
+  if (dnfPred) {
+    const pl = dnfPred.payload;
+    if ("allFinish" in pl && pl.allFinish) {
+      lines.push(strings.share.allFinish);
+    } else if ("teamId" in pl) {
+      const team = teams.find((t) => t.id === pl.teamId);
+      if (team) lines.push(`${strings.share.dnf}: ${team.name}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
 export default async function HistoryPage() {
   let predictions: Prediction[];
   let races: Race[];
+  let driverMap: Map<string, DriverWithTeam>;
+  let teams: Team[];
 
   try {
-    [predictions, races] = await Promise.all([
+    [predictions, races, driverMap, teams] = await Promise.all([
       getAllUserPredictions(),
       getRaces(),
+      getDriverMap(),
+      getTeams(),
     ]);
   } catch {
     return <ErrorState />;
@@ -50,7 +101,6 @@ export default async function HistoryPage() {
 
   // One card per race session: all race_* predictions (positions + DNF) merge
   // into a single "Гонка" card, qualifying_* into a single "Кваліфікація" card.
-  type Session = "qualifying" | "race";
   interface Group {
     key: string;
     raceId: string;
@@ -60,6 +110,7 @@ export default async function HistoryPage() {
     completed: boolean;
     points: number;
     scored: boolean;
+    preds: Prediction[];
   }
 
   const groups = new Map<string, Group>();
@@ -70,17 +121,21 @@ export default async function HistoryPage() {
       : "race";
     const key = `${prediction.raceId}__${session}`;
 
-    const group = groups.get(key) ?? {
-      key,
-      raceId: prediction.raceId,
-      session,
-      round: race?.round ?? 0,
-      name: race?.name ?? strings.race.driver,
-      completed: race?.status === "completed",
-      points: 0,
-      scored: false,
-    };
+    const group =
+      groups.get(key) ??
+      ({
+        key,
+        raceId: prediction.raceId,
+        session,
+        round: race?.round ?? 0,
+        name: race?.name ?? strings.race.driver,
+        completed: race?.status === "completed",
+        points: 0,
+        scored: false,
+        preds: [],
+      } satisfies Group);
 
+    group.preds.push(prediction);
     if (prediction.points != null) {
       group.points += prediction.points;
       group.scored = true;
@@ -110,10 +165,16 @@ export default async function HistoryPage() {
             group.session === "qualifying"
               ? strings.pages.qualifying
               : strings.pages.race;
+          const shareText = composeShareText(
+            group.preds,
+            group.session,
+            driverMap,
+            teams,
+          );
 
           return (
-            <li key={group.key}>
-              <Link href={href}>
+            <li key={group.key} className="flex items-center gap-3">
+              <Link href={href} className="min-w-0 flex-1">
                 <Card className="transition-shadow duration-200 hover:shadow-md">
                   <CardContent className="flex items-center justify-between gap-3 p-4">
                     <div className="min-w-0">
@@ -132,6 +193,7 @@ export default async function HistoryPage() {
                   </CardContent>
                 </Card>
               </Link>
+              <ShareButton text={shareText} path={href} />
             </li>
           );
         })}
