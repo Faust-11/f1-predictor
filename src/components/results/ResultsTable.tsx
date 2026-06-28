@@ -14,6 +14,8 @@ interface ResultsTableProps {
   title: string;
   results: ResultEntry[];
   driverMap: Map<string, DriverWithTeam>;
+  /** Optional finishing gaps keyed by driver id (e.g. "+2.974"). */
+  gaps?: Map<string, string>;
 }
 
 function sortResults(results: ResultEntry[]): ResultEntry[] {
@@ -25,7 +27,12 @@ function sortResults(results: ResultEntry[]): ResultEntry[] {
   });
 }
 
-export function ResultsTable({ title, results, driverMap }: ResultsTableProps) {
+export function ResultsTable({
+  title,
+  results,
+  driverMap,
+  gaps,
+}: ResultsTableProps) {
   const sorted = sortResults(results);
 
   return (
@@ -38,6 +45,7 @@ export function ResultsTable({ title, results, driverMap }: ResultsTableProps) {
           {sorted.map((entry) => {
             const driver = driverMap.get(entry.driverId);
             const isDnf = entry.dnf || entry.position == null;
+            const gap = gaps?.get(entry.driverId);
             return (
               <li
                 key={entry.driverId}
@@ -73,6 +81,11 @@ export function ResultsTable({ title, results, driverMap }: ResultsTableProps) {
                     ? `${driver.firstName} ${driver.lastName}`
                     : strings.race.driver}
                 </span>
+                {!isDnf && gap && (
+                  <span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+                    {gap}
+                  </span>
+                )}
                 {isDnf && (
                   <span className="shrink-0 rounded-sm bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">
                     {strings.results.dnf}
