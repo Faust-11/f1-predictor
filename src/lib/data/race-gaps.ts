@@ -17,6 +17,25 @@ interface JolpicaResultRow {
   Time?: { time?: string };
 }
 
+interface JolpicaQualifyingRow {
+  position: string;
+  Driver: { code?: string };
+  Q1?: string;
+  Q2?: string;
+  Q3?: string;
+}
+
+/** "1:04.567" -> 64.567; "58.123" -> 58.123. */
+function lapToSeconds(t: string | undefined): number | null {
+  if (!t || !t.trim()) return null;
+  const parts = t.trim().split(":");
+  const secs =
+    parts.length === 2
+      ? Number(parts[0]) * 60 + Number(parts[1])
+      : Number(parts[0]);
+  return Number.isFinite(secs) ? secs : null;
+}
+
 async function fetchJolpica<T>(path: string): Promise<T | null> {
   try {
     const res = await fetch(`${BASE_URL}/${path}`, {
@@ -74,6 +93,52 @@ export async function getRaceGaps(race: Race): Promise<Map<string, string>> {
     const code = row.Driver.code?.toUpperCase();
     if (!time || !code) continue; // no code, or retired / DNS (no finishing gap)
     gaps.set(code, time);
+  }
+
+  return gaps;
+}
+
+/**
+ * Qualifying gaps keyed by driver CODE. Pole → best lap time (e.g. "1:04.567");
+ * others → gap to pole ("+0.123"). From Jolpica qualifying results.
+ */
+export async function getQualifyingGaps(
+  race: Race,
+): Promise<Map<string, string>> {
+  const gaps = new Map<string, string>();
+  const round = await resolveJolpicaRound(race);
+  if (round == null) return gaps;
+
+  const data = await fetchJolpica<{
+    MRData: {
+      RaceTable: { Races: Array<{ QualifyingResults?: JolpicaQualifyingRow[] }> };
+    };
+  }>(`${ACTIVE_SEASON_ID}/${round}/qualifying.json`);
+
+  const rows = data?.MRData.RaceTable.Races?.[0]?.QualifyingResults ?? [];
+  if (rows.length === 0) return gaps;
+
+  const entries = rows
+    .map((r) => {
+      const code = r.Driver.code?.toUpperCase();
+      const times = [r.Q1, r.Q2, r.Q3]
+        .map(lapToSeconds)
+        .filter((n): n is number => n != null);
+      const best = times.length ? Math.min(...times) : null;
+      const raw = [r.Q3, r.Q2, r.Q1].find((t) => lapToSeconds(t) === best);
+      return code && best != null ? { code, best, raw } : null;
+    })
+    .filter(
+      (e): e is { code: string; best: number; raw: string | undefined } =>
+        e != null,
+    );
+
+  if (entries.length === 0) return gaps;
+  const pole = Math.min(...entries.map((e) => e.best));
+
+  for (const e of entries) {
+    const diff = e.best - pole;
+    gaps.set(e.code, diff < 0.0005 ? e.raw ?? "" : `+${diff.toFixed(3)}`);
   }
 
   return gaps;
