@@ -14,7 +14,7 @@ interface ResultsTableProps {
   title: string;
   results: ResultEntry[];
   driverMap: Map<string, DriverWithTeam>;
-  /** Optional finishing gaps keyed by driver id (e.g. "+2.974"). */
+  /** Optional finishing gaps keyed by driver CODE (e.g. "+2.974"). */
   gaps?: Map<string, string>;
 }
 
@@ -45,7 +45,7 @@ export function ResultsTable({
           {sorted.map((entry) => {
             const driver = driverMap.get(entry.driverId);
             const isDnf = entry.dnf || entry.position == null;
-            const gap = gaps?.get(entry.driverId);
+            const gap = driver?.code ? gaps?.get(driver.code.toUpperCase()) : undefined;
             return (
               <li
                 key={entry.driverId}
