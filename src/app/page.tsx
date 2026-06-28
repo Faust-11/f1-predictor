@@ -3,6 +3,7 @@ import { ArrowRight, Trophy } from "lucide-react";
 
 import { Countdown } from "@/components/race/Countdown";
 import { CalendarGrid } from "@/components/race/CalendarGrid";
+import { TrackOutline } from "@/components/race/TrackOutline";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -69,6 +70,10 @@ function NextRaceHero({ race }: { race: Race }) {
             </p>
           )}
         </div>
+        <TrackOutline
+          src={`/tracks/${race.round}.svg`}
+          className="mx-auto h-24 w-auto max-w-[45%] shrink-0 opacity-80 dark:invert sm:h-32"
+        />
         <div className="flex flex-col items-start gap-4 sm:items-end">
           <Countdown target={target.iso} label={target.label} />
           <Button render={<Link href={raceEntryHref(race)} />} size="lg">
