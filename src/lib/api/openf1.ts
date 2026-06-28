@@ -148,11 +148,20 @@ export async function fetchOpenF1Roster(
     `${BASE_URL}/meetings?year=${seasonId}`,
   );
 
-  const latestGp = meetings
-    .filter(isGrandPrixMeeting)
-    .sort(
+  // Use the latest GP that has already happened — the season's last meeting is
+  // a future race whose entries carry placeholder photos and tentative line-ups.
+  const grandPrix = meetings.filter(isGrandPrixMeeting);
+  const now = Date.now();
+  const latestGp =
+    grandPrix
+      .filter((m) => new Date(m.date_start).getTime() <= now)
+      .sort(
+        (a, b) =>
+          new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+      )[0] ??
+    grandPrix.sort(
       (a, b) =>
-        new Date(b.date_start).getTime() - new Date(a.date_start).getTime(),
+        new Date(a.date_start).getTime() - new Date(b.date_start).getTime(),
     )[0];
 
   if (!latestGp) {
@@ -186,7 +195,12 @@ export async function fetchOpenF1Roster(
       code: row.name_acronym,
       number: row.driver_number,
       country: row.country_code,
-      photoUrl: row.headshot_url,
+      // OpenF1 now serves a placeholder ("fallback") image for many entries —
+      // treat that as "no photo" so it never overwrites a real stored photo.
+      photoUrl:
+        row.headshot_url && !row.headshot_url.includes("fallback")
+          ? row.headshot_url
+          : null,
     });
   }
 
