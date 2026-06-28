@@ -18,6 +18,13 @@ interface StandingsCardProps {
   constructors: ConstructorStandingEntry[];
 }
 
+// On mobile only the first N rows are shown; the rest expand via a button.
+// On desktop (lg+) every row is always visible.
+const COLLAPSE_LIMIT = 10;
+
+const ROW_BASE =
+  "items-center gap-3 border-b border-border/60 py-2 last:border-0";
+
 function PositionBadge({ position }: { position: number }) {
   const isPodium = position <= 3;
   return (
@@ -51,8 +58,13 @@ function Points({ value }: { value: number }) {
 
 export function StandingsCard({ drivers, constructors }: StandingsCardProps) {
   const [tab, setTab] = useState<Tab>("drivers");
+  const [expanded, setExpanded] = useState(false);
   const s = strings.standings;
   const rows = tab === "drivers" ? drivers : constructors;
+
+  // Hidden on mobile when collapsed, but always shown on desktop.
+  const rowDisplay = (index: number) =>
+    !expanded && index >= COLLAPSE_LIMIT ? "hidden lg:flex" : "flex";
 
   return (
     <Card>
@@ -80,44 +92,58 @@ export function StandingsCard({ drivers, constructors }: StandingsCardProps) {
             {s.empty}
           </p>
         ) : (
-          <ul className="flex flex-col">
-            {tab === "drivers"
-              ? drivers.map((row) => (
-                  <li
-                    key={row.code || row.name}
-                    className="flex items-center gap-3 border-b border-border/60 py-2 last:border-0"
-                  >
-                    <PositionBadge position={row.position} />
-                    <TeamStripe color={row.teamColor} />
-                    <Avatar className="size-8">
-                      {row.photoUrl && (
-                        <AvatarImage src={row.photoUrl} alt={row.name} />
-                      )}
-                      <AvatarFallback>{row.code || "?"}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-medium">{row.name}</p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {row.teamName}
-                      </p>
-                    </div>
-                    <Points value={row.points} />
-                  </li>
-                ))
-              : constructors.map((row) => (
-                  <li
-                    key={row.name}
-                    className="flex items-center gap-3 border-b border-border/60 py-2 last:border-0"
-                  >
-                    <PositionBadge position={row.position} />
-                    <TeamStripe color={row.teamColor} />
-                    <span className="min-w-0 flex-1 truncate text-sm font-medium">
-                      {row.name}
-                    </span>
-                    <Points value={row.points} />
-                  </li>
-                ))}
-          </ul>
+          <>
+            <ul className="flex flex-col">
+              {tab === "drivers"
+                ? drivers.map((row, index) => (
+                    <li
+                      key={row.code || row.name}
+                      className={cn(rowDisplay(index), ROW_BASE)}
+                    >
+                      <PositionBadge position={row.position} />
+                      <TeamStripe color={row.teamColor} />
+                      <Avatar className="size-8">
+                        {row.photoUrl && (
+                          <AvatarImage src={row.photoUrl} alt={row.name} />
+                        )}
+                        <AvatarFallback>{row.code || "?"}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {row.name}
+                        </p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {row.teamName}
+                        </p>
+                      </div>
+                      <Points value={row.points} />
+                    </li>
+                  ))
+                : constructors.map((row, index) => (
+                    <li
+                      key={row.name}
+                      className={cn(rowDisplay(index), ROW_BASE)}
+                    >
+                      <PositionBadge position={row.position} />
+                      <TeamStripe color={row.teamColor} />
+                      <span className="min-w-0 flex-1 truncate text-sm font-medium">
+                        {row.name}
+                      </span>
+                      <Points value={row.points} />
+                    </li>
+                  ))}
+            </ul>
+
+            {rows.length > COLLAPSE_LIMIT && (
+              <button
+                type="button"
+                onClick={() => setExpanded((v) => !v)}
+                className="mt-1 rounded-md py-1.5 text-sm font-medium text-primary hover:underline lg:hidden"
+              >
+                {expanded ? s.showLess : s.showMore}
+              </button>
+            )}
+          </>
         )}
       </CardContent>
     </Card>
