@@ -86,10 +86,8 @@ export async function getStandings(): Promise<SeasonStandings> {
     getDriversWithTeams().catch(() => []),
   ]);
 
-  const photoByCode = new Map<string, string | null>();
   const colorByTeamId = new Map<string, string | null>();
   for (const d of dbDrivers) {
-    if (d.code) photoByCode.set(d.code.toUpperCase(), d.photoUrl);
     if (d.team?.name) {
       colorByTeamId.set(teamNameToApiId(d.team.name), d.team.colorHex);
     }
@@ -109,7 +107,8 @@ export async function getStandings(): Promise<SeasonStandings> {
       name: `${row.Driver.givenName} ${row.Driver.familyName}`,
       teamName: constructor?.name ?? "",
       teamColor: colorByTeamId.get(teamId) ?? null,
-      photoUrl: photoByCode.get(code.toUpperCase()) ?? null,
+      // Curated local headshots (public/drivers/CODE.webp).
+      photoUrl: code ? `/drivers/${code.toUpperCase()}.webp` : null,
     };
   });
 
