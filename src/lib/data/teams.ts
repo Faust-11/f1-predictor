@@ -15,5 +15,11 @@ export async function getTeams(): Promise<Team[]> {
     throw new Error(error.message);
   }
 
-  return (data ?? []).map(mapTeamRow);
+  // Collapse duplicate rows (same name) that a past bad sync may have created.
+  const byName = new Map<string, Team>();
+  for (const row of data ?? []) {
+    const team = mapTeamRow(row);
+    if (!byName.has(team.name)) byName.set(team.name, team);
+  }
+  return [...byName.values()];
 }
