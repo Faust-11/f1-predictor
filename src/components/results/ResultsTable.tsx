@@ -1,3 +1,4 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { DriverWithTeam } from "@/lib/data/drivers";
 import { strings } from "@/lib/i18n/strings";
@@ -58,6 +59,15 @@ export function ResultsTable({ title, results, driverMap }: ResultsTableProps) {
                       : undefined
                   }
                 />
+                <Avatar className={cn("size-8", isDnf && "opacity-50")}>
+                  {driver?.photoUrl && (
+                    <AvatarImage
+                      src={driver.photoUrl}
+                      alt={driver.lastName}
+                    />
+                  )}
+                  <AvatarFallback>{driver?.code ?? "?"}</AvatarFallback>
+                </Avatar>
                 <span className="min-w-0 flex-1 truncate text-sm font-medium">
                   {driver
                     ? `${driver.firstName} ${driver.lastName}`
