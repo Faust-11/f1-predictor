@@ -155,7 +155,7 @@ async function upsertDrivers(drivers: ApiDriver[]): Promise<number> {
 
     const { data: existing } = await admin
       .from("drivers")
-      .select("id")
+      .select("id, photo_url")
       .eq("season_id", ACTIVE_SEASON_ID)
       .eq("api_driver_id", driver.apiDriverId)
       .maybeSingle();
@@ -167,7 +167,9 @@ async function upsertDrivers(drivers: ApiDriver[]): Promise<number> {
       last_name: driver.lastName,
       code: driver.code,
       number: driver.number,
-      photo_url: driver.photoUrl,
+      // Keep the existing photo when the current source has none (e.g. the
+      // Jolpica/seed fallback) — never overwrite a good photo with null.
+      photo_url: driver.photoUrl ?? existing?.photo_url ?? null,
       country: driver.country,
       api_driver_id: driver.apiDriverId,
     };
