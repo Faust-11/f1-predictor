@@ -222,14 +222,21 @@ export default async function Home() {
         </section>
       )}
 
-      <section className="grid gap-8 lg:grid-cols-2 lg:items-start">
+      <section className="grid gap-8 lg:grid-cols-2 lg:items-stretch">
         <div>
           <SectionHeading>{strings.standings.title}</SectionHeading>
           <SeasonStandingsSection />
         </div>
-        <div>
+        <div className="lg:flex lg:flex-col">
           <SectionHeading>{strings.news.title}</SectionHeading>
-          <LatestNewsSection />
+          {/* On desktop the news card is capped to the standings height and
+              scrolls internally — the absolute child keeps it out of the grid
+              row sizing so the standings column stays the height driver. */}
+          <div className="lg:relative lg:min-h-0 lg:flex-1">
+            <div className="lg:absolute lg:inset-0">
+              <LatestNewsSection />
+            </div>
+          </div>
         </div>
       </section>
 
