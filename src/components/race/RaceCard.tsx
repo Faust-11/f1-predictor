@@ -10,6 +10,7 @@ import {
   CardFooter,
   CardHeader,
 } from "@/components/ui/card";
+import { countryToIso, flagUrl } from "@/lib/country-flag";
 import { formatDateUk } from "@/lib/i18n/date";
 import { strings } from "@/lib/i18n/strings";
 import { isPredictionLocked } from "@/lib/predictions/deadline";
@@ -40,6 +41,7 @@ export function RaceCard({ race }: { race: Race }) {
     isPredictionLocked(race, "race");
 
   const showResults = race.status === "completed";
+  const iso = countryToIso(race.country);
 
   return (
     <Card className="flex flex-col transition-shadow duration-200 hover:shadow-md">
@@ -59,9 +61,21 @@ export function RaceCard({ race }: { race: Race }) {
           src={`/tracks/${race.round}.svg`}
           className="mx-auto my-1 h-20 w-auto max-w-[70%] object-contain opacity-80 dark:invert"
         />
-        <h3 className="font-heading text-lg font-bold leading-tight">
-          {race.name}
-        </h3>
+        <div className="flex items-center gap-2">
+          {iso && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={flagUrl(iso)}
+              alt=""
+              aria-hidden="true"
+              loading="lazy"
+              className="size-5 shrink-0 rounded-full"
+            />
+          )}
+          <h3 className="font-heading text-lg font-bold leading-tight">
+            {race.name}
+          </h3>
+        </div>
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col gap-2 pt-0 text-sm text-muted-foreground">
