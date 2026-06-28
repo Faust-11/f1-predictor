@@ -106,6 +106,18 @@ export const strings = {
     title: "Новини F1",
     empty: "Новини тимчасово недоступні.",
   },
+  share: {
+    title: "Поділитися прогнозом",
+    copyLink: "Скопіювати посилання",
+    telegram: "Надіслати в Telegram",
+    copied: "Посилання скопійовано!",
+    copyFailed: "Не вдалося скопіювати посилання.",
+    raceHeader: "🏁 Мій прогноз на гонку",
+    qualifyingHeader: "🏁 Мій прогноз на кваліфікацію",
+    dnf: "Аутсайдер",
+    allFinish: "Усі боліди фінішують",
+    invite: "Роби свій прогноз на F1 Predictor!",
+  },
   leaderboard: {
     title: "Рейтинг користувачів",
     rank: "Місце",
