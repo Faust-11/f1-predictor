@@ -18,6 +18,7 @@ import {
 import { getRaceResults } from "@/lib/data/results";
 import { getStandings } from "@/lib/data/standings";
 import { getNews } from "@/lib/data/news";
+import { countryToIso, flagUrl } from "@/lib/country-flag";
 import { StandingsCard } from "@/components/leaderboard/StandingsCard";
 import { NewsCard } from "@/components/leaderboard/NewsCard";
 import { formatDateUk } from "@/lib/i18n/date";
@@ -45,6 +46,7 @@ function nextSessionTarget(race: Race): { iso: string | null; label: string } {
 
 function NextRaceHero({ race }: { race: Race }) {
   const target = nextSessionTarget(race);
+  const iso = countryToIso(race.country);
   return (
     <Card className="overflow-hidden border-primary/20">
       <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
@@ -56,9 +58,21 @@ function NextRaceHero({ race }: { race: Race }) {
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               {strings.race.round} {race.round}
             </p>
-            <h2 className="font-heading text-2xl font-bold sm:text-3xl">
-              {race.name}
-            </h2>
+            <div className="flex items-center gap-2">
+              {iso && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={flagUrl(iso)}
+                  alt=""
+                  aria-hidden="true"
+                  loading="lazy"
+                  className="size-6 shrink-0 rounded-full"
+                />
+              )}
+              <h2 className="font-heading text-2xl font-bold sm:text-3xl">
+                {race.name}
+              </h2>
+            </div>
             <p className="mt-1 text-sm text-muted-foreground">
               {[race.country, race.circuit].filter(Boolean).join(" · ")}
             </p>
