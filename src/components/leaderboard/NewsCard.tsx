@@ -18,9 +18,9 @@ export function NewsCard({ sources }: NewsCardProps) {
   const active = available.find((s) => s.id === activeId) ?? available[0];
 
   return (
-    <Card>
-      <CardContent className="flex flex-col gap-4 p-4 sm:p-6">
-        <div className="inline-flex w-fit flex-wrap gap-1 rounded-lg bg-secondary p-1">
+    <Card className="lg:flex lg:h-full lg:flex-col">
+      <CardContent className="flex flex-col gap-4 p-4 sm:p-6 lg:min-h-0 lg:flex-1">
+        <div className="inline-flex w-fit shrink-0 flex-wrap gap-1 rounded-lg bg-secondary p-1">
           {available.map((s) => (
             <button
               key={s.id}
@@ -43,7 +43,7 @@ export function NewsCard({ sources }: NewsCardProps) {
             {strings.news.empty}
           </p>
         ) : (
-          <ul className="flex flex-col">
+          <ul className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
             {active.items.map((item) => (
               <li
                 key={item.link}
