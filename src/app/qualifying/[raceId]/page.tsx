@@ -9,6 +9,7 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { getDriverMap, getDriversWithTeams } from "@/lib/data/drivers";
 import { getUserPredictionsForRace } from "@/lib/data/predictions";
 import { getRaceById } from "@/lib/data/races";
+import { getQualifyingGaps } from "@/lib/data/race-gaps";
 import { getQualifyingResults, getRaceResults } from "@/lib/data/results";
 import { getCurrentUser } from "@/lib/data/user";
 import { strings } from "@/lib/i18n/strings";
@@ -67,10 +68,11 @@ export default async function QualifyingPage({
 
   let resultsNode = null;
   if (race.status === "completed") {
-    const [qualifying, raceResults, driverMap] = await Promise.all([
+    const [qualifying, raceResults, driverMap, gaps] = await Promise.all([
       getQualifyingResults(raceId),
       getRaceResults(raceId),
       getDriverMap(),
+      getQualifyingGaps(race),
     ]);
     // Map every driver id (incl. duplicate rows) to its team via the canonical map.
     const driverTeam = new Map(
@@ -89,6 +91,7 @@ export default async function QualifyingPage({
               position: r.position,
             }))}
             driverMap={driverMap}
+            gaps={gaps}
           />
         ) : (
           <EmptyState message={strings.states.resultsEmpty} />
