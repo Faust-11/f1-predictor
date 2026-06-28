@@ -3,6 +3,7 @@ import { CalendarDays, Flag, MapPin } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { TrackOutline } from "@/components/race/TrackOutline";
 import {
   Card,
   CardContent,
@@ -54,6 +55,10 @@ export function RaceCard({ race }: { race: Race }) {
             {status.label}
           </Badge>
         </div>
+        <TrackOutline
+          src={`/tracks/${race.round}.svg`}
+          className="mx-auto my-1 h-20 w-auto max-w-[70%] object-contain opacity-80 dark:invert"
+        />
         <h3 className="font-heading text-lg font-bold leading-tight">
           {race.name}
         </h3>
