@@ -27,7 +27,7 @@ function validatePayload(
 ): boolean {
   if (type === "race_dnf") {
     if ("allFinish" in payload) return payload.allFinish === true;
-    if ("teamId" in payload) return Boolean(payload.teamId);
+    if ("teamIds" in payload) return payload.teamIds.length > 0;
     return false;
   }
 
