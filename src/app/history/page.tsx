@@ -56,9 +56,11 @@ function composeShareText(
     const pl = dnfPred.payload;
     if ("allFinish" in pl && pl.allFinish) {
       lines.push(strings.share.allFinish);
-    } else if ("teamId" in pl) {
-      const team = teams.find((t) => t.id === pl.teamId);
-      if (team) lines.push(`${strings.share.dnf}: ${team.name}`);
+    } else if ("teamIds" in pl && Array.isArray(pl.teamIds)) {
+      const names = pl.teamIds
+        .map((id) => teams.find((t) => t.id === id)?.name)
+        .filter((n): n is string => Boolean(n));
+      if (names.length) lines.push(`${strings.share.dnf}: ${names.join(", ")}`);
     }
   }
 
