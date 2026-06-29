@@ -11,11 +11,13 @@ export function buildScoringContext(
   qualifying: QualifyingResult[],
   race: RaceResult[],
   driverTeam: Map<string, string>,
+  driverKey: Map<string, string> = new Map(),
 ): ScoringContext {
   return {
     qualifyingByPosition: qualifyingPositionMap(qualifying),
     raceByPosition: racePositionMap(race),
     raceResults: race,
     driverTeam,
+    driverKey,
   };
 }

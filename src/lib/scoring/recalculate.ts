@@ -22,7 +22,7 @@ export async function recalculateRacePoints(raceId: string): Promise<number> {
     admin.from("race_results").select("*").eq("race_id", raceId),
     admin
       .from("drivers")
-      .select("id, team_id")
+      .select("id, team_id, code")
       .eq("season_id", ACTIVE_SEASON_ID),
     admin.from("predictions").select("*").eq("race_id", raceId),
   ]);
@@ -37,8 +37,11 @@ export async function recalculateRacePoints(raceId: string): Promise<number> {
   const driverTeam = new Map<string, string>(
     (driversRes.data ?? []).map((d) => [d.id, d.team_id]),
   );
+  const driverKey = new Map<string, string>(
+    (driversRes.data ?? []).map((d) => [d.id, d.code]),
+  );
 
-  const ctx = buildScoringContext(qualifying, race, driverTeam);
+  const ctx = buildScoringContext(qualifying, race, driverTeam, driverKey);
 
   let updated = 0;
   for (const row of (predictionsRes.data ?? []) as PredictionRow[]) {

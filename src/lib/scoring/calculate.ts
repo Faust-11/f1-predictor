@@ -77,22 +77,29 @@ function scorePosition(
   type: PredictionType,
   predicted: Record<string, string>,
   actual: Map<number, string>,
+  driverKey: Map<string, string>,
 ): ScoreBreakdown {
   const slots = slotsForType(type);
   let base = 0;
   let correctSlots = 0;
 
+  // Compare by canonical driver key (code), not raw id — duplicate driver rows
+  // can give a prediction and the result different ids for the same driver.
+  const keyOf = (id: string | undefined): string | null =>
+    id ? driverKey.get(id) || id : null;
+  const slotMatches = (slot: number): boolean => {
+    const predictedKey = keyOf(predicted[String(slot)]);
+    return predictedKey != null && predictedKey === keyOf(actual.get(slot));
+  };
+
   for (const slot of slots) {
-    const predictedDriver = predicted[String(slot)];
-    if (predictedDriver && actual.get(slot) === predictedDriver) {
+    if (slotMatches(slot)) {
       base += pointsForSlot(slot);
       correctSlots += 1;
     }
   }
 
-  const podiumCorrect = PODIUM_SLOT_NUMBERS.every(
-    (slot) => predicted[String(slot)] && actual.get(slot) === predicted[String(slot)],
-  );
+  const podiumCorrect = PODIUM_SLOT_NUMBERS.every((slot) => slotMatches(slot));
   const isExactPodium = podiumCorrect;
 
   // Podium bonus applies whenever P1–P3 are all correct (podium or top10 type).
@@ -147,6 +154,8 @@ export interface ScoringContext {
   raceResults: RaceResult[];
   /** driverId → teamId, for DNF scoring. */
   driverTeam: Map<string, string>;
+  /** driverId → canonical key (code), so duplicate driver rows still match. */
+  driverKey: Map<string, string>;
 }
 
 /** Score a single prediction against official results. Pure function. */
@@ -165,5 +174,10 @@ export function scorePrediction(
       ? ctx.qualifyingByPosition
       : ctx.raceByPosition;
 
-  return scorePosition(type, payload as Record<string, string>, actual);
+  return scorePosition(
+    type,
+    payload as Record<string, string>,
+    actual,
+    ctx.driverKey,
+  );
 }
