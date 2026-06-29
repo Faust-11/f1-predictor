@@ -133,15 +133,16 @@ async function LatestResults({ race }: { race: Race }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4 p-4 sm:p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-start justify-between gap-2">
           <p className="font-medium">{race.name}</p>
           <Button
             render={<Link href={`/race/${race.id}`} />}
             variant="ghost"
             size="sm"
+            className="h-auto max-w-[7.5rem] whitespace-normal text-right leading-tight sm:max-w-none sm:whitespace-nowrap"
           >
             {strings.actions.viewResults}
-            <ArrowRight className="size-3.5" />
+            <ArrowRight className="size-3.5 shrink-0" />
           </Button>
         </div>
 
@@ -161,8 +162,8 @@ async function LatestResults({ race }: { race: Race }) {
                   )}
                   <AvatarFallback>{driver?.code ?? "?"}</AvatarFallback>
                 </Avatar>
-                <div className="min-w-0 text-center">
-                  <p className="truncate text-sm font-semibold">
+                <div className="w-full text-center">
+                  <p className="line-clamp-2 text-sm font-semibold leading-tight">
                     {driver
                       ? `${driver.firstName} ${driver.lastName}`
                       : strings.race.driver}
