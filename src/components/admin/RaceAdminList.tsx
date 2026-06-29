@@ -6,7 +6,12 @@ import { ChevronDown } from "lucide-react";
 import { ManualResultsEditor } from "@/components/admin/ManualResultsEditor";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { recalcRace, setRaceStatus } from "@/lib/actions/admin";
+import { toast } from "@/components/ui/toast";
+import {
+  recalcRace,
+  setHighlightVideo,
+  setRaceStatus,
+} from "@/lib/actions/admin";
 import type { DriverWithTeam } from "@/lib/data/drivers";
 import { cn } from "@/lib/utils";
 import type { Race, RaceStatus } from "@/types/race";
@@ -33,7 +38,18 @@ function RaceRow({
   raceInitial: Map<string, { position: number | null; dnf?: boolean }>;
 }) {
   const [open, setOpen] = useState(false);
+  const [video, setVideo] = useState(race.highlightVideoId ?? "");
   const [pending, startTransition] = useTransition();
+
+  function saveVideo() {
+    startTransition(async () => {
+      const res = await setHighlightVideo(race.id, video);
+      toast(
+        res.ok ? res.message ?? "Збережено" : res.error,
+        res.ok ? "success" : "error",
+      );
+    });
+  }
 
   return (
     <li className="flex flex-col gap-2 border-b border-border/60 py-3 last:border-0">
@@ -76,19 +92,40 @@ function RaceRow({
       </div>
 
       {open && (
-        <div className="grid gap-3 md:grid-cols-2">
-          <ManualResultsEditor
-            raceId={race.id}
-            kind="qualifying"
-            drivers={drivers}
-            initial={qualiInitial}
-          />
-          <ManualResultsEditor
-            raceId={race.id}
-            kind="race"
-            drivers={drivers}
-            initial={raceInitial}
-          />
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-end gap-2">
+            <label className="flex flex-1 flex-col gap-1 text-xs text-muted-foreground">
+              Хайлайт (YouTube посилання або ID)
+              <input
+                value={video}
+                onChange={(e) => setVideo(e.target.value)}
+                placeholder="https://youtube.com/watch?v=..."
+                className="h-8 rounded-md border border-input bg-background px-2 text-sm text-foreground"
+              />
+            </label>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={pending}
+              onClick={saveVideo}
+            >
+              Зберегти відео
+            </Button>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <ManualResultsEditor
+              raceId={race.id}
+              kind="qualifying"
+              drivers={drivers}
+              initial={qualiInitial}
+            />
+            <ManualResultsEditor
+              raceId={race.id}
+              kind="race"
+              drivers={drivers}
+              initial={raceInitial}
+            />
+          </div>
         </div>
       )}
     </li>
