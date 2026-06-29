@@ -74,11 +74,19 @@ export default async function QualifyingPage({
       getDriverMap(),
       getQualifyingGaps(race),
     ]);
-    // Map every driver id (incl. duplicate rows) to its team via the canonical map.
+    // Map every driver id (incl. duplicate rows) to team and canonical code.
     const driverTeam = new Map(
       [...driverMap].map(([id, d]) => [id, d.teamId]),
     );
-    const ctx = buildScoringContext(qualifying, raceResults, driverTeam);
+    const driverKey = new Map(
+      [...driverMap].map(([id, d]) => [id, d.code]),
+    );
+    const ctx = buildScoringContext(
+      qualifying,
+      raceResults,
+      driverTeam,
+      driverKey,
+    );
     const { items, total } = buildBreakdownItems(qualiPredictions, ctx);
 
     resultsNode = (
