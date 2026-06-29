@@ -131,6 +131,7 @@ export const strings = {
     accuracy: "Точність",
     anonymous: "Анонім",
     you: "Ви",
+    noPredictions: "Немає прогнозів.",
   },
   history: {
     title: "Мої прогнози",
