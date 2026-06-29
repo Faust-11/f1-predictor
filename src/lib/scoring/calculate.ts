@@ -129,22 +129,31 @@ function scoreDnf(
 ): ScoreBreakdown {
   const anyDnf = raceResults.some((r) => r.dnf);
 
-  let hit = false;
+  // Teams that actually had at least one retirement.
+  const dnfTeams = new Set(
+    raceResults
+      .filter((r) => r.dnf)
+      .map((r) => driverTeam.get(r.driverId))
+      .filter((t): t is string => Boolean(t)),
+  );
+
+  let dnfBonus = 0;
+  let totalSlots = 1;
   if ("allFinish" in payload && payload.allFinish) {
-    hit = !anyDnf;
-  } else if ("teamId" in payload) {
-    hit = raceResults.some(
-      (r) => r.dnf && driverTeam.get(r.driverId) === payload.teamId,
-    );
+    if (!anyDnf) dnfBonus = DNF_BONUS;
+  } else if ("teamIds" in payload && Array.isArray(payload.teamIds)) {
+    // DNF_BONUS for each correctly-predicted team that retired.
+    const correct = payload.teamIds.filter((id) => dnfTeams.has(id)).length;
+    dnfBonus = correct * DNF_BONUS;
+    totalSlots = Math.max(payload.teamIds.length, 1);
   }
 
-  const dnfBonus = hit ? DNF_BONUS : 0;
   return {
     ...EMPTY_BREAKDOWN,
     dnfBonus,
     total: dnfBonus,
-    totalSlots: 1,
-    isPerfect: hit,
+    totalSlots,
+    isPerfect: dnfBonus > 0,
   };
 }
 
