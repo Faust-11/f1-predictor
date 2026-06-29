@@ -2,6 +2,7 @@ import { CalendarX } from "lucide-react";
 
 import { PredictionGrid } from "@/components/prediction/PredictionGrid";
 import { PredictionHeader } from "@/components/prediction/PredictionHeader";
+import { Highlights } from "@/components/race/Highlights";
 import { PointsBreakdown } from "@/components/results/PointsBreakdown";
 import { ResultsTable } from "@/components/results/ResultsTable";
 import { EmptyState } from "@/components/shared/EmptyState";
@@ -9,6 +10,7 @@ import { ErrorState } from "@/components/shared/ErrorState";
 import { getDriverMap, getDriversWithTeams } from "@/lib/data/drivers";
 import { getUserPredictionsForRace } from "@/lib/data/predictions";
 import { getRaceById } from "@/lib/data/races";
+import { highlightVideoId } from "@/lib/highlights";
 import { getRaceGaps } from "@/lib/data/race-gaps";
 import { getQualifyingResults, getRaceResults } from "@/lib/data/results";
 import { getTeams } from "@/lib/data/teams";
@@ -83,23 +85,37 @@ export default async function RacePage({
     );
     const ctx = buildScoringContext(qualifying, raceResults, driverTeam);
     const { items, total } = buildBreakdownItems(racePredictions, ctx);
+    const videoId = race.highlightVideoId ?? highlightVideoId(race.round);
 
-    resultsNode = (
+    const resultsTable =
+      raceResults.length > 0 ? (
+        <ResultsTable
+          title={strings.results.raceResults}
+          results={raceResults.map((r) => ({
+            driverId: r.driverId,
+            position: r.position,
+            dnf: r.dnf,
+          }))}
+          driverMap={driverMap}
+          gaps={gaps}
+        />
+      ) : (
+        <EmptyState message={strings.states.resultsEmpty} />
+      );
+
+    // With a highlights video: results (left) · video (right), breakdown below.
+    // Without: original results · breakdown two-column layout.
+    resultsNode = videoId ? (
+      <div className="flex flex-col gap-4">
+        <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+          {resultsTable}
+          <Highlights videoId={videoId} />
+        </div>
+        <PointsBreakdown items={items} total={total} />
+      </div>
+    ) : (
       <div className="grid gap-4 sm:grid-cols-2">
-        {raceResults.length > 0 ? (
-          <ResultsTable
-            title={strings.results.raceResults}
-            results={raceResults.map((r) => ({
-              driverId: r.driverId,
-              position: r.position,
-              dnf: r.dnf,
-            }))}
-            driverMap={driverMap}
-            gaps={gaps}
-          />
-        ) : (
-          <EmptyState message={strings.states.resultsEmpty} />
-        )}
+        {resultsTable}
         <PointsBreakdown items={items} total={total} />
       </div>
     );
