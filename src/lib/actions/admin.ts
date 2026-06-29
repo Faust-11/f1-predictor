@@ -5,7 +5,7 @@ import { cookies } from "next/headers";
 
 import { runSync } from "@/lib/api/sync";
 import type { SyncScope } from "@/lib/api/normalized";
-import { isAdminAuthenticated } from "@/lib/admin/auth";
+import { adminSessionToken, isAdminAuthenticated } from "@/lib/admin/auth";
 import { ADMIN_COOKIE, USER_ID_COOKIE_MAX_AGE } from "@/lib/constants";
 import { recalculateRacePoints } from "@/lib/scoring/recalculate";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -22,10 +22,15 @@ export async function adminLogin(password: string): Promise<AdminResult> {
     return { ok: false, error: "Невірний пароль." };
   }
 
+  const token = adminSessionToken();
+  if (!token) {
+    return { ok: false, error: "ADMIN_PASSWORD не налаштовано." };
+  }
+
   const cookieStore = await cookies();
   cookieStore.set({
     name: ADMIN_COOKIE,
-    value: password,
+    value: token,
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
