@@ -1,15 +1,18 @@
 import type { PredictionPayload } from "@/types/prediction";
 
-/** Mutually-exclusive DNF choice in the race form. */
+/** DNF choice in the race form: several teams OR "everyone finishes". */
 export type DnfSelection =
-  | { kind: "team"; teamId: string }
+  | { kind: "teams"; teamIds: string[] }
   | { kind: "all" }
   | null;
 
-export function dnfSelectionToPayload(selection: DnfSelection): PredictionPayload | null {
+export function dnfSelectionToPayload(
+  selection: DnfSelection,
+): PredictionPayload | null {
   if (!selection) return null;
   if (selection.kind === "all") return { allFinish: true };
-  return { teamId: selection.teamId };
+  if (selection.teamIds.length === 0) return null;
+  return { teamIds: selection.teamIds };
 }
 
 export function dnfSelectionFromPayload(
@@ -17,6 +20,8 @@ export function dnfSelectionFromPayload(
 ): DnfSelection {
   if (!payload) return null;
   if ("allFinish" in payload && payload.allFinish) return { kind: "all" };
-  if ("teamId" in payload) return { kind: "team", teamId: payload.teamId };
+  if ("teamIds" in payload && Array.isArray(payload.teamIds)) {
+    return { kind: "teams", teamIds: payload.teamIds };
+  }
   return null;
 }
