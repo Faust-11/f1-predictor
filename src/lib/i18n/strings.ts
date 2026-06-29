@@ -76,6 +76,8 @@ export const strings = {
     nameRequired: "Вкажіть ваше ім'я, щоб зберегти прогноз.",
     podiumSection: "Подіум",
     top10Section: "Десятка",
+    othersTitle: "Прогнози інших гравців",
+    othersEmpty: "Інші гравці ще не зробили прогноз на цей етап.",
   },
   results: {
     title: "Результати етапу",
