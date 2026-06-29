@@ -104,6 +104,7 @@ export const strings = {
     empty: "Турнірна таблиця з'явиться після першого етапу.",
     showMore: "Показати більше",
     showLess: "Згорнути",
+    perGpHint: "Очки за етапами",
   },
   news: {
     title: "Новини F1",
