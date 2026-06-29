@@ -208,6 +208,7 @@ async function SeasonStandingsSection() {
     <StandingsCard
       drivers={standings.drivers}
       constructors={standings.constructors}
+      rounds={standings.rounds}
     />
   );
 }
