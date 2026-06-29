@@ -8,7 +8,7 @@ export type PredictionType =
 /** Position slots: { "1": driver_id, "2": driver_id, ... } */
 export type PositionPayload = Record<string, string>;
 
-export type DnfTeamPayload = { teamId: string };
+export type DnfTeamPayload = { teamIds: string[] };
 export type DnfAllFinishPayload = { allFinish: true };
 
 export type PredictionPayload =
@@ -17,7 +17,7 @@ export type PredictionPayload =
   | DnfAllFinishPayload;
 
 /** JSONB shape stored in Postgres (snake_case keys for DNF) */
-export type DnfTeamPayloadRow = { team_id: string };
+export type DnfTeamPayloadRow = { team_ids: string[] } | { team_id: string };
 export type DnfAllFinishPayloadRow = { all_finish: true };
 
 export type PredictionPayloadRow =
@@ -53,8 +53,12 @@ export function mapPayloadRowToDomain(
     if ("all_finish" in payload && payload.all_finish) {
       return { allFinish: true };
     }
-    if ("team_id" in payload) {
-      return { teamId: payload.team_id };
+    if ("team_ids" in payload && Array.isArray(payload.team_ids)) {
+      return { teamIds: payload.team_ids };
+    }
+    // Backward compatibility with the old single-team shape.
+    if ("team_id" in payload && typeof payload.team_id === "string") {
+      return { teamIds: [payload.team_id] };
     }
   }
   return payload as PositionPayload;
@@ -68,8 +72,8 @@ export function mapPayloadDomainToRow(
     if ("allFinish" in payload && payload.allFinish) {
       return { all_finish: true };
     }
-    if ("teamId" in payload) {
-      return { team_id: payload.teamId };
+    if ("teamIds" in payload && Array.isArray(payload.teamIds)) {
+      return { team_ids: payload.teamIds };
     }
   }
   return payload as PositionPayload;
