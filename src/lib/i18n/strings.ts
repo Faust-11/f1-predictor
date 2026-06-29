@@ -65,7 +65,7 @@ export const strings = {
     displayNamePlaceholder: "Введіть ваше ім'я",
     podiumMode: "Подіум",
     top10Mode: "TOP-10",
-    dnfQuestion: "Яка команда не фінішує?",
+    dnfQuestion: "Боліди яких команд зійдуть?",
     allFinish: "Усі боліди фінішують",
     pickDriver: "Оберіть пілота",
     pickTeam: "Оберіть команду",
