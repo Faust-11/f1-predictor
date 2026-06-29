@@ -273,7 +273,7 @@ export default async function Home() {
       )}
 
       <section className="grid gap-8 lg:grid-cols-2 lg:items-stretch">
-        <div>
+        <div className="min-w-0">
           <SectionHeading>{strings.standings.title}</SectionHeading>
           <SeasonStandingsSection />
         </div>
