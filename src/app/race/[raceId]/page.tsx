@@ -3,11 +3,13 @@ import { CalendarX } from "lucide-react";
 import { PredictionGrid } from "@/components/prediction/PredictionGrid";
 import { PredictionHeader } from "@/components/prediction/PredictionHeader";
 import { Highlights } from "@/components/race/Highlights";
+import { OthersPredictions } from "@/components/prediction/OthersPredictions";
 import { PointsBreakdown } from "@/components/results/PointsBreakdown";
 import { ResultsTable } from "@/components/results/ResultsTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { getDriverMap, getDriversWithTeams } from "@/lib/data/drivers";
+import { getOthersPredictions } from "@/lib/data/others-predictions";
 import { getUserPredictionsForRace } from "@/lib/data/predictions";
 import { getRaceById } from "@/lib/data/races";
 import { highlightVideoId } from "@/lib/highlights";
@@ -51,6 +53,7 @@ export default async function RacePage({
   let teams: Team[] = [];
   let predictions: Prediction[] = [];
   let hasDisplayName = false;
+  let currentUserId: string | null = null;
 
   try {
     const [driversData, teamsData, predictionsData, user] = await Promise.all([
@@ -63,9 +66,14 @@ export default async function RacePage({
     teams = teamsData;
     predictions = predictionsData;
     hasDisplayName = Boolean(user?.displayName);
+    currentUserId = user?.id ?? null;
   } catch {
     return <ErrorState />;
   }
+
+  const others = await getOthersPredictions(raceId, "race", currentUserId).catch(
+    () => [],
+  );
 
   const locked = isPredictionLocked(race, "race");
   const initial = deriveInitialFormState(predictions, "race");
@@ -79,11 +87,19 @@ export default async function RacePage({
       getRaceGaps(race),
       getDriverMap(),
     ]);
-    // Map every driver id (incl. duplicate rows) to its team via the canonical map.
+    // Map every driver id (incl. duplicate rows) to team and canonical code.
     const driverTeam = new Map(
       [...driverMap].map(([id, d]) => [id, d.teamId]),
     );
-    const ctx = buildScoringContext(qualifying, raceResults, driverTeam);
+    const driverKey = new Map(
+      [...driverMap].map(([id, d]) => [id, d.code]),
+    );
+    const ctx = buildScoringContext(
+      qualifying,
+      raceResults,
+      driverTeam,
+      driverKey,
+    );
     const { items, total } = buildBreakdownItems(racePredictions, ctx);
     const videoId = race.highlightVideoId ?? highlightVideoId(race.round);
 
@@ -146,6 +162,13 @@ export default async function RacePage({
           initialDnf={initial.dnf}
         />
       )}
+
+      <section className="flex flex-col gap-3">
+        <h2 className="font-heading text-lg font-bold">
+          {strings.predictions.othersTitle}
+        </h2>
+        <OthersPredictions items={others} />
+      </section>
     </div>
   );
 }
