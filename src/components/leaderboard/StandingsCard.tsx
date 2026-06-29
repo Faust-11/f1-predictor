@@ -28,7 +28,7 @@ const COLLAPSE_LIMIT = 10;
 // Shared sticky-column classes (position + identity stay while GP columns scroll).
 const STICKY = "sticky z-20 bg-card";
 const POS_CELL = `${STICKY} left-0 w-9`;
-const NAME_CELL = `${STICKY} left-9 w-44 border-r border-border`;
+const NAME_CELL = `${STICKY} left-9 w-44`;
 
 function PositionBadge({ position }: { position: number }) {
   const isPodium = position <= 3;
@@ -95,7 +95,7 @@ export function StandingsCard({
           </p>
         ) : (
           <>
-            <div className="overflow-x-auto">
+            <div className="min-w-0 overflow-x-auto">
               <table className="border-separate border-spacing-0 text-sm">
                 <thead>
                   <tr className="text-xs text-muted-foreground">
