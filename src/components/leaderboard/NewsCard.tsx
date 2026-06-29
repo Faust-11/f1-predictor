@@ -61,6 +61,8 @@ export function NewsCard({ sources }: NewsCardProps) {
                       src={item.image}
                       alt=""
                       loading="lazy"
+                      width={80}
+                      height={56}
                       className="h-14 w-20 shrink-0 rounded-md object-cover"
                     />
                   )}
