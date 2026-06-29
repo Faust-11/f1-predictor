@@ -54,11 +54,25 @@ export function ShareButton({ text, path }: ShareButtonProps) {
     a.remove();
   }
 
+  async function handleClick() {
+    // Native share sheet first (mobile opens Telegram/apps directly; desktop
+    // Chrome/Edge shows the OS share). Falls back to our menu otherwise.
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ text, url: absoluteUrl() });
+        return;
+      } catch {
+        // user cancelled or share unavailable → show the menu
+      }
+    }
+    setOpen((v) => !v);
+  }
+
   return (
     <div ref={ref} className="relative shrink-0">
       <button
         type="button"
-        onClick={() => setOpen((v) => !v)}
+        onClick={handleClick}
         aria-label={strings.share.title}
         aria-expanded={open}
         className="flex size-11 items-center justify-center rounded-xl border border-border bg-card text-foreground transition-colors hover:bg-secondary"
