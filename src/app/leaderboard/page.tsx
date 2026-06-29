@@ -5,6 +5,10 @@ import { LeaderboardTable } from "@/components/leaderboard/LeaderboardTable";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { getLeaderboard, type LeaderboardEntry } from "@/lib/data/leaderboard";
+import {
+  getPlayersPredictions,
+  type PlayerRacePrediction,
+} from "@/lib/data/others-predictions";
 import { strings } from "@/lib/i18n/strings";
 import { getServerUserId } from "@/lib/supabase/server";
 
@@ -17,11 +21,13 @@ export const metadata: Metadata = {
 export default async function LeaderboardPage() {
   let entries: LeaderboardEntry[];
   let currentUserId: string | undefined;
+  let predictionsByUser: Record<string, PlayerRacePrediction[]> = {};
 
   try {
-    [entries, currentUserId] = await Promise.all([
+    [entries, currentUserId, predictionsByUser] = await Promise.all([
       getLeaderboard(),
       getServerUserId(),
+      getPlayersPredictions(),
     ]);
   } catch {
     return <ErrorState />;
@@ -33,7 +39,11 @@ export default async function LeaderboardPage() {
         {strings.leaderboard.title}
       </h1>
       {entries.length > 0 ? (
-        <LeaderboardTable entries={entries} currentUserId={currentUserId} />
+        <LeaderboardTable
+          entries={entries}
+          currentUserId={currentUserId}
+          predictionsByUser={predictionsByUser}
+        />
       ) : (
         <EmptyState message={strings.states.leaderboardEmpty} icon={Trophy} />
       )}
