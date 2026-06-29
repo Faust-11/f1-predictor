@@ -15,9 +15,17 @@ interface DnfPickerProps {
   onChange: (value: DnfSelection) => void;
 }
 
-/** "Яка команда не фінішує?" — pick exactly one team OR "усі фінішують". */
+/** Pick any number of teams whose car will retire, OR "everyone finishes". */
 export function DnfPicker({ teams, value, readOnly, onChange }: DnfPickerProps) {
   const allSelected = value?.kind === "all";
+  const selectedTeamIds = value?.kind === "teams" ? value.teamIds : [];
+
+  function toggleTeam(teamId: string) {
+    const next = selectedTeamIds.includes(teamId)
+      ? selectedTeamIds.filter((id) => id !== teamId)
+      : [...selectedTeamIds, teamId];
+    onChange(next.length > 0 ? { kind: "teams", teamIds: next } : null);
+  }
 
   return (
     <div className="flex flex-col gap-3">
@@ -31,8 +39,8 @@ export function DnfPicker({ teams, value, readOnly, onChange }: DnfPickerProps) 
             key={team.id}
             team={team}
             readOnly={readOnly}
-            selected={value?.kind === "team" && value.teamId === team.id}
-            onSelect={() => onChange({ kind: "team", teamId: team.id })}
+            selected={selectedTeamIds.includes(team.id)}
+            onSelect={() => toggleTeam(team.id)}
           />
         ))}
       </div>
