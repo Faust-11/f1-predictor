@@ -22,6 +22,8 @@ export function TrackOutline({ src, className }: TrackOutlineProps) {
       alt=""
       aria-hidden="true"
       loading="lazy"
+      width={160}
+      height={90}
       onError={() => setFailed(true)}
       className={className}
     />

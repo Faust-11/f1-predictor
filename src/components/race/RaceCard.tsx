@@ -69,6 +69,8 @@ export function RaceCard({ race }: { race: Race }) {
               alt=""
               aria-hidden="true"
               loading="lazy"
+              width={20}
+              height={20}
               className="size-5 shrink-0 rounded-full"
             />
           )}
