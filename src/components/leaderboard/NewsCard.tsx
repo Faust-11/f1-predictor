@@ -43,7 +43,7 @@ export function NewsCard({ sources }: NewsCardProps) {
             {strings.news.empty}
           </p>
         ) : (
-          <ul className="flex flex-col lg:min-h-0 lg:flex-1 lg:overflow-y-auto">
+          <ul className="flex max-h-[26rem] flex-col overflow-y-auto lg:max-h-none lg:min-h-0 lg:flex-1">
             {active.items.map((item) => (
               <li
                 key={item.link}
