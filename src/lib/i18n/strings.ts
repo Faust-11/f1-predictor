@@ -85,6 +85,7 @@ export const strings = {
     points: "очки",
     pointsShort: "оч.",
     dnf: "Схід",
+    highlights: "Огляд гонки",
     breakdown: "Розрахунок очків",
     podiumBonus: "Бонус за подіум",
     top10Bonus: "Бонус за десятку",
