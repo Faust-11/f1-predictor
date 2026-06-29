@@ -93,6 +93,38 @@ export async function recalcRace(raceId: string): Promise<AdminResult> {
   }
 }
 
+/** Accepts a full YouTube URL or a raw 11-char id; returns the id or null. */
+function parseYouTubeId(input: string): string | null {
+  const s = input.trim();
+  if (!s) return null;
+  if (/^[\w-]{11}$/.test(s)) return s;
+  const m = s.match(/(?:youtu\.be\/|[?&]v=|embed\/|shorts\/)([\w-]{11})/);
+  return m ? m[1] : null;
+}
+
+export async function setHighlightVideo(
+  raceId: string,
+  input: string,
+): Promise<AdminResult> {
+  if (!(await requireAdmin())) return { ok: false, error: "Немає доступу." };
+
+  const id = parseYouTubeId(input);
+  if (input.trim() && !id) {
+    return { ok: false, error: "Невірне посилання YouTube." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("races")
+    .update({ highlight_video_id: id })
+    .eq("id", raceId);
+  if (error) return { ok: false, error: error.message };
+
+  revalidatePath(`/race/${raceId}`);
+  revalidatePath("/admin");
+  return { ok: true, message: id ? "Відео збережено." : "Відео очищено." };
+}
+
 export interface ManualResultEntry {
   driverId: string;
   position: number | null;
