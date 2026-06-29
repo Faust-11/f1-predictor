@@ -68,6 +68,8 @@ function NextRaceHero({ race }: { race: Race }) {
                   alt=""
                   aria-hidden="true"
                   loading="lazy"
+                  width={24}
+                  height={24}
                   className="size-6 shrink-0 rounded-full"
                 />
               )}
