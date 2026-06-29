@@ -141,3 +141,130 @@ export async function getOthersPredictions(
 
   return result;
 }
+
+export interface PlayerRacePrediction {
+  raceId: string;
+  raceName: string;
+  round: number;
+  points: number;
+  scored: boolean;
+  positions: OtherPredictionRow[];
+  dnf: string | null;
+}
+
+/**
+ * Every player's race predictions, grouped by user then race (round desc).
+ * Returned as a plain Record so it can be passed to a client component.
+ * Used by the leaderboard to expand a player's card.
+ */
+export async function getPlayersPredictions(): Promise<
+  Record<string, PlayerRacePrediction[]>
+> {
+  const admin = createAdminClient();
+
+  const [predsRes, racesRes, driversRes, teamsRes] = await Promise.all([
+    admin.from("predictions").select("*"),
+    admin
+      .from("races")
+      .select("id, name, round")
+      .eq("season_id", ACTIVE_SEASON_ID),
+    admin
+      .from("drivers")
+      .select("id, first_name, last_name, team_id")
+      .eq("season_id", ACTIVE_SEASON_ID),
+    admin
+      .from("teams")
+      .select("id, name, color_hex")
+      .eq("season_id", ACTIVE_SEASON_ID),
+  ]);
+
+  for (const res of [predsRes, racesRes, driversRes, teamsRes]) {
+    if (res.error) throw new Error(res.error.message);
+  }
+
+  const teamColor = new Map(
+    (teamsRes.data ?? []).map((t) => [t.id, t.color_hex]),
+  );
+  const teamName = new Map((teamsRes.data ?? []).map((t) => [t.id, t.name]));
+  const driverInfo = new Map(
+    (driversRes.data ?? []).map((d) => [
+      d.id,
+      {
+        name: `${d.first_name} ${d.last_name}`,
+        teamColor: teamColor.get(d.team_id) ?? null,
+      },
+    ]),
+  );
+  const raceInfo = new Map(
+    (racesRes.data ?? []).map((r) => [r.id, { name: r.name, round: r.round }]),
+  );
+
+  // Group race_* predictions by user, then race.
+  const byUserRace = new Map<string, Map<string, PredictionRow[]>>();
+  for (const row of (predsRes.data ?? []) as PredictionRow[]) {
+    if (!row.type.startsWith("race")) continue;
+    const races = byUserRace.get(row.user_id) ?? new Map();
+    const list = races.get(row.race_id) ?? [];
+    list.push(row);
+    races.set(row.race_id, list);
+    byUserRace.set(row.user_id, races);
+  }
+
+  const out: Record<string, PlayerRacePrediction[]> = {};
+  for (const [userId, races] of byUserRace) {
+    const items: PlayerRacePrediction[] = [];
+    for (const [raceId, preds] of races) {
+      const positionPred = preds
+        .filter((p) => p.type.endsWith("podium") || p.type.endsWith("top10"))
+        .sort(
+          (a, b) =>
+            Object.keys(b.payload as Record<string, string>).length -
+            Object.keys(a.payload as Record<string, string>).length,
+        )[0];
+
+      const positions: OtherPredictionRow[] = [];
+      if (positionPred) {
+        const payload = positionPred.payload as Record<string, string>;
+        const order = Object.keys(payload)
+          .map(Number)
+          .filter((n) => !Number.isNaN(n))
+          .sort((a, b) => a - b);
+        for (const pos of order) {
+          const info = driverInfo.get(payload[String(pos)]);
+          positions.push({
+            position: pos,
+            driverName: info?.name ?? "—",
+            teamColor: info?.teamColor ?? null,
+          });
+        }
+      }
+
+      let dnf: string | null = null;
+      const dnfPred = preds.find((p) => p.type === "race_dnf");
+      if (dnfPred) {
+        const payload = mapPayloadRowToDomain("race_dnf", dnfPred.payload);
+        if ("teamIds" in payload && Array.isArray(payload.teamIds)) {
+          const names = payload.teamIds
+            .map((id) => teamName.get(id))
+            .filter((n): n is string => Boolean(n));
+          dnf = names.length ? names.join(", ") : null;
+        }
+      }
+
+      const info = raceInfo.get(raceId);
+      items.push({
+        raceId,
+        raceName: info?.name ?? "—",
+        round: info?.round ?? 0,
+        points: preds.reduce((sum, p) => sum + (p.points ?? 0), 0),
+        scored: preds.some((p) => p.points != null),
+        positions,
+        dnf,
+      });
+    }
+    items.sort((a, b) => b.round - a.round);
+    out[userId] = items;
+  }
+
+  return out;
+}
