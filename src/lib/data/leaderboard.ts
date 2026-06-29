@@ -54,7 +54,7 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
       admin.from("race_results").select("*").in("race_id", raceIds),
       admin
         .from("drivers")
-        .select("id, team_id")
+        .select("id, team_id, code")
         .eq("season_id", ACTIVE_SEASON_ID),
       admin.from("predictions").select("*").in("race_id", raceIds),
       admin.from("users").select("id, display_name, created_at"),
@@ -67,6 +67,9 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
   const driverTeam = new Map<string, string>(
     (driversRes.data ?? []).map((d) => [d.id, d.team_id]),
   );
+  const driverKey = new Map<string, string>(
+    (driversRes.data ?? []).map((d) => [d.id, d.code]),
+  );
 
   // Per-race scoring context.
   const contextByRace = new Map(
@@ -77,7 +80,10 @@ export async function getLeaderboard(): Promise<LeaderboardEntry[]> {
       const race = (raceRes.data ?? [])
         .filter((r) => r.race_id === raceId)
         .map(mapRaceResultRow);
-      return [raceId, buildScoringContext(quali, race, driverTeam)];
+      return [
+        raceId,
+        buildScoringContext(quali, race, driverTeam, driverKey),
+      ];
     }),
   );
 
