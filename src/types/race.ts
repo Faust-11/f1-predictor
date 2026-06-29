@@ -10,6 +10,7 @@ export interface Race {
   qualifyingAtUtc: string;
   raceAtUtc: string;
   status: RaceStatus;
+  highlightVideoId: string | null;
 }
 
 export interface RaceRow {
@@ -23,6 +24,7 @@ export interface RaceRow {
   race_at_utc: string | null;
   status: RaceStatus;
   api_meeting_id: string | null;
+  highlight_video_id: string | null;
 }
 
 export function mapRaceRow(row: RaceRow): Race {
@@ -36,5 +38,6 @@ export function mapRaceRow(row: RaceRow): Race {
     qualifyingAtUtc: row.qualifying_at_utc ?? "",
     raceAtUtc: row.race_at_utc ?? "",
     status: row.status,
+    highlightVideoId: row.highlight_video_id ?? null,
   };
 }
