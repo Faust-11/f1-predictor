@@ -113,7 +113,12 @@ export async function getOthersPredictions(
     const dnfPred = preds.find((p) => p.type === "race_dnf");
     if (dnfPred) {
       const payload = mapPayloadRowToDomain("race_dnf", dnfPred.payload);
-      if ("teamId" in payload) dnf = teamName.get(payload.teamId) ?? null;
+      if ("teamIds" in payload && Array.isArray(payload.teamIds)) {
+        const names = payload.teamIds
+          .map((id) => teamName.get(id))
+          .filter((n): n is string => Boolean(n));
+        dnf = names.length ? names.join(", ") : null;
+      }
     }
 
     const scored = preds.some((p) => p.points != null);
