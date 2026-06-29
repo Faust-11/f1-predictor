@@ -20,7 +20,9 @@ import {
 import { getRaceResults } from "@/lib/data/results";
 import { getStandings } from "@/lib/data/standings";
 import { getNews } from "@/lib/data/news";
+import { Highlights } from "@/components/race/Highlights";
 import { countryToIso, flagUrl } from "@/lib/country-flag";
+import { highlightVideoId } from "@/lib/highlights";
 import { StandingsCard } from "@/components/leaderboard/StandingsCard";
 import { NewsCard } from "@/components/leaderboard/NewsCard";
 import { formatDateUk } from "@/lib/i18n/date";
@@ -50,7 +52,7 @@ function NextRaceHero({ race }: { race: Race }) {
   const target = nextSessionTarget(race);
   const iso = countryToIso(race.country);
   return (
-    <Card className="overflow-hidden border-primary/20">
+    <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/5 to-transparent">
       <CardContent className="flex flex-col gap-6 p-6 sm:flex-row sm:items-center sm:justify-between sm:p-8">
         <div className="flex flex-col gap-3">
           <Badge variant="primary" className="w-fit">
@@ -245,6 +247,10 @@ export default async function Home() {
     .filter((r) => r.status !== "completed")
     .slice(0, 6);
 
+  const latestHighlight = latestRace
+    ? latestRace.highlightVideoId ?? highlightVideoId(latestRace.round)
+    : null;
+
   return (
     <div className="flex flex-col gap-10">
       <section className="flex flex-col gap-2">
@@ -257,7 +263,7 @@ export default async function Home() {
         <p className="max-w-2xl text-muted-foreground">{strings.app.tagline}</p>
       </section>
 
-      <section>
+      <section className="animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
         {nextRace ? (
           <NextRaceHero race={nextRace} />
         ) : (
@@ -266,13 +272,20 @@ export default async function Home() {
       </section>
 
       {latestRace && (
-        <section>
+        <section className="animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
           <SectionHeading>{strings.race.latestResults}</SectionHeading>
-          <LatestResults race={latestRace} />
+          {latestHighlight ? (
+            <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+              <LatestResults race={latestRace} />
+              <Highlights videoId={latestHighlight} />
+            </div>
+          ) : (
+            <LatestResults race={latestRace} />
+          )}
         </section>
       )}
 
-      <section className="grid gap-8 lg:grid-cols-2 lg:items-stretch">
+      <section className="grid gap-8 duration-500 animate-in fade-in slide-in-from-bottom-2 motion-reduce:animate-none lg:grid-cols-2 lg:items-stretch">
         <div className="min-w-0">
           <SectionHeading>{strings.standings.title}</SectionHeading>
           <SeasonStandingsSection />
@@ -290,7 +303,7 @@ export default async function Home() {
         </div>
       </section>
 
-      <section>
+      <section className="animate-in fade-in slide-in-from-bottom-2 duration-500 motion-reduce:animate-none">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="font-heading text-xl font-bold sm:text-2xl">
             {strings.race.seasonCalendar}
