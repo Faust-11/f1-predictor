@@ -145,6 +145,8 @@ export interface Database {
           status: RaceStatusDb;
           api_meeting_id: string | null;
           highlight_video_id: string | null;
+          sprint_qualifying_at_utc: string | null;
+          sprint_at_utc: string | null;
         };
         Insert: {
           id?: string;
@@ -158,6 +160,8 @@ export interface Database {
           status?: RaceStatusDb;
           api_meeting_id?: string | null;
           highlight_video_id?: string | null;
+          sprint_qualifying_at_utc?: string | null;
+          sprint_at_utc?: string | null;
         };
         Update: {
           id?: string;
@@ -171,6 +175,8 @@ export interface Database {
           status?: RaceStatusDb;
           api_meeting_id?: string | null;
           highlight_video_id?: string | null;
+          sprint_qualifying_at_utc?: string | null;
+          sprint_at_utc?: string | null;
         };
         Relationships: [
           {
