@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
 import {
   recalcRace,
+  resyncResults,
   setHighlightVideo,
   setRaceStatus,
 } from "@/lib/actions/admin";
@@ -51,6 +52,16 @@ function RaceRow({
     });
   }
 
+  function resync() {
+    startTransition(async () => {
+      const res = await resyncResults(race.id);
+      toast(
+        res.ok ? res.message ?? "Оновлено" : res.error,
+        res.ok ? "success" : "error",
+      );
+    });
+  }
+
   return (
     <li className="flex flex-col gap-2 border-b border-border/60 py-3 last:border-0">
       <div className="flex flex-wrap items-center gap-2">
@@ -73,6 +84,15 @@ function RaceRow({
             </option>
           ))}
         </select>
+
+        <Button
+          variant="outline"
+          size="sm"
+          disabled={pending}
+          onClick={resync}
+        >
+          Оновити результати
+        </Button>
 
         <Button
           variant="outline"
