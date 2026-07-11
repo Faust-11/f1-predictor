@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChevronsRight } from "lucide-react";
 
+import { BioDialog, type BioSubject } from "@/components/bio/BioDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { flagUrl } from "@/lib/country-flag";
@@ -27,7 +28,7 @@ const COLLAPSE_LIMIT = 10;
 
 // Single sticky identity column (position + driver) — keeping it one column
 // avoids gaps where scrolling cells would peek between two sticky columns.
-const IDENTITY_CELL = "sticky left-0 z-20 w-48 bg-card";
+const IDENTITY_CELL = "sticky left-0 z-20 bg-card";
 
 function PositionBadge({ position }: { position: number }) {
   const isPodium = position <= 3;
@@ -73,7 +74,21 @@ export function StandingsCard({
 }: StandingsCardProps) {
   const [tab, setTab] = useState<Tab>("drivers");
   const [expanded, setExpanded] = useState(false);
+  // While the table is scrolled horizontally on mobile, names collapse so the
+  // sticky identity column shrinks to badge + photo and per-GP columns get room.
+  const [scrolled, setScrolled] = useState(false);
+  const nameCollapseClass = cn(
+    "min-w-0 max-w-40 overflow-hidden transition-all duration-200 sm:max-w-none",
+    scrolled && "max-sm:max-w-0 max-sm:opacity-0",
+  );
+  const [bioSubject, setBioSubject] = useState<BioSubject | null>(null);
+  const [bioOpen, setBioOpen] = useState(false);
   const s = strings.standings;
+
+  function openBio(subject: BioSubject) {
+    setBioSubject(subject);
+    setBioOpen(true);
+  }
   const isDrivers = tab === "drivers";
   const rows = isDrivers ? drivers : constructors;
 
@@ -115,7 +130,10 @@ export function StandingsCard({
           </p>
         ) : (
           <>
-            <div className="min-w-0 overflow-x-auto">
+            <div
+              className="min-w-0 overflow-x-auto"
+              onScroll={(e) => setScrolled(e.currentTarget.scrollLeft > 8)}
+            >
               <table className="border-separate border-spacing-0 text-sm">
                 <thead>
                   <tr className="text-xs text-muted-foreground">
@@ -161,33 +179,49 @@ export function StandingsCard({
                           >
                             <div className="flex items-center gap-2">
                               <PositionBadge position={row.position} />
-                              <span
-                                className="h-7 w-1 shrink-0 rounded-full bg-border"
-                                style={
-                                  row.teamColor
-                                    ? { backgroundColor: row.teamColor }
-                                    : undefined
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  row.code &&
+                                  openBio({
+                                    type: "driver",
+                                    code: row.code,
+                                    name: row.name,
+                                    teamColor: row.teamColor,
+                                    photoUrl: row.photoUrl,
+                                    subtitle: row.teamName,
+                                  })
                                 }
-                              />
-                              <Avatar className="size-7 shrink-0">
-                                {row.photoUrl && (
-                                  <AvatarImage
-                                    src={row.photoUrl}
-                                    alt={row.name}
-                                  />
-                                )}
-                                <AvatarFallback>
-                                  {row.code || "?"}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div className="min-w-0">
-                                <p className="truncate text-sm font-medium leading-tight">
-                                  {row.name}
-                                </p>
-                                <p className="truncate text-xs text-muted-foreground">
-                                  {row.teamName}
-                                </p>
-                              </div>
+                                className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-75"
+                              >
+                                <span
+                                  className="h-7 w-1 shrink-0 rounded-full bg-border"
+                                  style={
+                                    row.teamColor
+                                      ? { backgroundColor: row.teamColor }
+                                      : undefined
+                                  }
+                                />
+                                <Avatar className="size-7 shrink-0">
+                                  {row.photoUrl && (
+                                    <AvatarImage
+                                      src={row.photoUrl}
+                                      alt={row.name}
+                                    />
+                                  )}
+                                  <AvatarFallback>
+                                    {row.code || "?"}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div className={nameCollapseClass}>
+                                  <p className="truncate text-sm font-medium leading-tight">
+                                    {row.name}
+                                  </p>
+                                  <p className="truncate text-xs text-muted-foreground">
+                                    {row.teamName}
+                                  </p>
+                                </div>
+                              </button>
                             </div>
                           </td>
                           <td className="border-b border-border/60 px-3 py-2 text-right font-heading font-bold tabular-nums text-primary">
@@ -206,17 +240,34 @@ export function StandingsCard({
                           >
                             <div className="flex items-center gap-2">
                               <PositionBadge position={row.position} />
-                              <span
-                                className="h-5 w-1 shrink-0 rounded-full bg-border"
-                                style={
-                                  row.teamColor
-                                    ? { backgroundColor: row.teamColor }
-                                    : undefined
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  openBio({
+                                    type: "constructor",
+                                    name: row.name,
+                                    teamColor: row.teamColor,
+                                  })
                                 }
-                              />
-                              <span className="truncate text-sm font-medium">
-                                {row.name}
-                              </span>
+                                className="flex min-w-0 items-center gap-2 text-left transition-opacity hover:opacity-75"
+                              >
+                                <span
+                                  className="h-5 w-1 shrink-0 rounded-full bg-border"
+                                  style={
+                                    row.teamColor
+                                      ? { backgroundColor: row.teamColor }
+                                      : undefined
+                                  }
+                                />
+                                <span
+                                  className={cn(
+                                    nameCollapseClass,
+                                    "truncate text-sm font-medium",
+                                  )}
+                                >
+                                  {row.name}
+                                </span>
+                              </button>
                             </div>
                           </td>
                           <td className="border-b border-border/60 px-3 py-2 text-right font-heading font-bold tabular-nums text-primary">
@@ -240,6 +291,12 @@ export function StandingsCard({
             )}
           </>
         )}
+
+        <BioDialog
+          subject={bioSubject}
+          open={bioOpen}
+          onOpenChange={setBioOpen}
+        />
       </CardContent>
     </Card>
   );
