@@ -11,6 +11,8 @@ export interface ApiRace {
   circuit: string;
   qualifyingAtUtc: string | null;
   raceAtUtc: string | null;
+  sprintQualifyingAtUtc: string | null;
+  sprintAtUtc: string | null;
   apiMeetingId: string | null;
   status: RaceStatus;
 }

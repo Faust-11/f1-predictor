@@ -199,8 +199,16 @@ async function upsertRaces(races: ApiRace[], source: SyncSource): Promise<number
       .eq("round", race.round)
       .maybeSingle();
 
+    // Keep a "completed" status only if the main race is actually in the past —
+    // otherwise a weekend falsely completed by the old sprint-session bug is
+    // corrected back to its inferred (upcoming/live) status.
+    const raceInPast = race.raceAtUtc
+      ? Date.now() > new Date(race.raceAtUtc).getTime()
+      : false;
     const preservedStatus: RaceStatus =
-      existing?.status === "completed" ? "completed" : race.status;
+      existing?.status === "completed" && raceInPast
+        ? "completed"
+        : race.status;
 
     const row = {
       season_id: ACTIVE_SEASON_ID,
@@ -210,6 +218,8 @@ async function upsertRaces(races: ApiRace[], source: SyncSource): Promise<number
       circuit: race.circuit,
       qualifying_at_utc: race.qualifyingAtUtc,
       race_at_utc: race.raceAtUtc,
+      sprint_qualifying_at_utc: race.sprintQualifyingAtUtc,
+      sprint_at_utc: race.sprintAtUtc,
       status: preservedStatus,
       api_meeting_id: race.apiMeetingId,
     };

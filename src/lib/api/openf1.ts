@@ -111,8 +111,16 @@ export async function fetchOpenF1Calendar(
 
   for (const [index, meeting] of grandPrixMeetings.entries()) {
     const sessions = await fetchSessions(meeting.meeting_key);
-    const qualifying = sessions.find((s) => s.session_type === "Qualifying");
-    const race = sessions.find((s) => s.session_type === "Race");
+    // On sprint weekends there are two "Qualifying" and two "Race" session
+    // types — match by session_name so we always pick the MAIN sessions.
+    const qualifying = sessions.find((s) => s.session_name === "Qualifying");
+    const race = sessions.find((s) => s.session_name === "Race");
+    const sprintQualifying = sessions.find(
+      (s) =>
+        s.session_name === "Sprint Qualifying" ||
+        s.session_name === "Sprint Shootout",
+    );
+    const sprint = sessions.find((s) => s.session_name === "Sprint");
 
     const qualifyingAtUtc = qualifying?.date_start ?? null;
     const raceAtUtc = race?.date_start ?? null;
@@ -125,6 +133,8 @@ export async function fetchOpenF1Calendar(
       circuit: meeting.circuit_short_name,
       qualifyingAtUtc,
       raceAtUtc,
+      sprintQualifyingAtUtc: sprintQualifying?.date_start ?? null,
+      sprintAtUtc: sprint?.date_start ?? null,
       apiMeetingId: String(meeting.meeting_key),
       status: inferRaceStatus(qualifyingAtUtc, raceAtUtc),
     });
@@ -216,8 +226,9 @@ export async function fetchOpenF1Results(
   round: number,
 ): Promise<RaceResultsPayload> {
   const sessions = await fetchSessions(Number(meetingKey));
-  const qualifyingSession = sessions.find((s) => s.session_type === "Qualifying");
-  const raceSession = sessions.find((s) => s.session_type === "Race");
+  // Match by name so sprint weekends don't return the sprint sessions.
+  const qualifyingSession = sessions.find((s) => s.session_name === "Qualifying");
+  const raceSession = sessions.find((s) => s.session_name === "Race");
 
   const qualifying: ApiQualifyingResult[] = [];
   const race: ApiRaceResult[] = [];

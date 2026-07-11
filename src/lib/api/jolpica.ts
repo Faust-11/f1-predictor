@@ -22,6 +22,9 @@ interface JolpicaRace {
   date: string;
   time?: string;
   Qualifying?: { date: string; time: string };
+  Sprint?: { date: string; time: string };
+  SprintQualifying?: { date: string; time: string };
+  SprintShootout?: { date: string; time: string };
   Circuit: {
     circuitName: string;
     Location: { country: string; locality: string };
@@ -122,6 +125,7 @@ export async function fetchJolpicaCalendar(
       ? toUtcIso(race.Qualifying.date, race.Qualifying.time)
       : null;
     const raceAtUtc = toUtcIso(race.date, race.time);
+    const sprintQuali = race.SprintQualifying ?? race.SprintShootout;
 
     return {
       seasonId,
@@ -131,6 +135,12 @@ export async function fetchJolpicaCalendar(
       circuit: race.Circuit.circuitName,
       qualifyingAtUtc,
       raceAtUtc,
+      sprintQualifyingAtUtc: sprintQuali
+        ? toUtcIso(sprintQuali.date, sprintQuali.time)
+        : null,
+      sprintAtUtc: race.Sprint
+        ? toUtcIso(race.Sprint.date, race.Sprint.time)
+        : null,
       apiMeetingId: null,
       status: inferRaceStatus(qualifyingAtUtc, raceAtUtc),
     };
