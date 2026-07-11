@@ -13,11 +13,12 @@ export function DriverCard({ driver, className }: DriverCardProps) {
 
   return (
     <div className={cn("flex items-center gap-3 text-left", className)}>
-      <span
-        className="h-9 w-1 shrink-0 rounded-full bg-border"
-        style={teamColor ? { backgroundColor: teamColor } : undefined}
-      />
-      <Avatar className="size-9">
+      <Avatar
+        className="size-9"
+        style={
+          teamColor ? { boxShadow: `0 0 0 2px ${teamColor}` } : undefined
+        }
+      >
         {driver.photoUrl && (
           <AvatarImage src={driver.photoUrl} alt={driver.lastName} />
         )}
