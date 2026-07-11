@@ -34,6 +34,47 @@ export function countryToIso(country: string | null | undefined): string | null 
   return COUNTRY_ISO[country.trim().toLowerCase()] ?? null;
 }
 
+// Jolpica/Ergast nationalities (demonyms) → ISO-2, for driver/team bios.
+const NATIONALITY_ISO: Record<string, string> = {
+  american: "us",
+  argentine: "ar",
+  argentinian: "ar",
+  australian: "au",
+  austrian: "at",
+  belgian: "be",
+  brazilian: "br",
+  british: "gb",
+  canadian: "ca",
+  chinese: "cn",
+  danish: "dk",
+  dutch: "nl",
+  finnish: "fi",
+  french: "fr",
+  german: "de",
+  indian: "in",
+  indonesian: "id",
+  irish: "ie",
+  italian: "it",
+  japanese: "jp",
+  mexican: "mx",
+  monegasque: "mc",
+  "new zealander": "nz",
+  polish: "pl",
+  portuguese: "pt",
+  russian: "ru",
+  spanish: "es",
+  swedish: "se",
+  swiss: "ch",
+  thai: "th",
+};
+
+export function nationalityToIso(
+  nationality: string | null | undefined,
+): string | null {
+  if (!nationality) return null;
+  return NATIONALITY_ISO[nationality.trim().toLowerCase()] ?? null;
+}
+
 /** Round flag SVG (HatScripts/circle-flags) served from the jsDelivr CDN. */
 export function flagUrl(iso: string): string {
   return `https://cdn.jsdelivr.net/gh/HatScripts/circle-flags/flags/${iso}.svg`;
