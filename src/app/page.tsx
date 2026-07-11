@@ -27,7 +27,6 @@ import { StandingsCard } from "@/components/leaderboard/StandingsCard";
 import { NewsCard } from "@/components/leaderboard/NewsCard";
 import { formatDateUk } from "@/lib/i18n/date";
 import { strings } from "@/lib/i18n/strings";
-import { isPredictionLocked } from "@/lib/predictions/deadline";
 import { raceEntryHref } from "@/lib/predictions/routing";
 import type { Race } from "@/types/race";
 
@@ -39,13 +38,49 @@ function SectionHeading({ children }: { children: React.ReactNode }) {
   );
 }
 
+interface WeekendSession {
+  iso: string;
+  label: string;
+  until: string;
+}
+
+/** Weekend sessions in chronological order (practices excluded). */
+function weekendSessions(race: Race): WeekendSession[] {
+  const sessions: WeekendSession[] = [
+    {
+      iso: race.sprintQualifyingAtUtc,
+      label: strings.race.sprintQualifying,
+      until: strings.race.untilSprintQualifying,
+    },
+    {
+      iso: race.sprintAtUtc,
+      label: strings.race.sprint,
+      until: strings.race.untilSprint,
+    },
+    {
+      iso: race.qualifyingAtUtc,
+      label: strings.race.qualifying,
+      until: strings.race.untilQualifying,
+    },
+    {
+      iso: race.raceAtUtc,
+      label: strings.race.raceDay,
+      until: strings.race.untilRace,
+    },
+  ];
+  return sessions.filter((s) => Boolean(s.iso));
+}
+
 function nextSessionTarget(race: Race): { iso: string | null; label: string } {
-  const qualiOpen =
-    race.qualifyingAtUtc && !isPredictionLocked(race, "qualifying");
-  if (qualiOpen) {
-    return { iso: race.qualifyingAtUtc, label: strings.race.untilQualifying };
+  const sessions = weekendSessions(race);
+  if (sessions.length === 0) {
+    return { iso: null, label: strings.race.untilRace };
   }
-  return { iso: race.raceAtUtc || null, label: strings.race.untilRace };
+  const now = Date.now();
+  const next =
+    sessions.find((s) => new Date(s.iso).getTime() > now) ??
+    sessions[sessions.length - 1];
+  return { iso: next.iso, label: next.until };
 }
 
 function NextRaceHero({ race }: { race: Race }) {
@@ -83,12 +118,19 @@ function NextRaceHero({ race }: { race: Race }) {
               {[race.country, race.circuit].filter(Boolean).join(" · ")}
             </p>
           </div>
-          {race.raceAtUtc && (
-            <p className="text-sm text-muted-foreground">
-              {strings.race.raceDay}:{" "}
-              {formatDateUk(race.raceAtUtc, "d MMMM yyyy, HH:mm")}
-            </p>
-          )}
+          <div className="mt-1 flex flex-col gap-1 text-sm">
+            {weekendSessions(race).map((session) => (
+              <div
+                key={session.until}
+                className="flex items-center justify-between gap-4"
+              >
+                <span className="font-medium">{session.label}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {formatDateUk(session.iso, "d MMM, HH:mm")}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
         <TrackOutline
           src={`/tracks/${race.round}.svg`}
