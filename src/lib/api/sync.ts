@@ -392,6 +392,49 @@ async function syncRoster(): Promise<SyncJobResult> {
   }
 }
 
+async function fetchAndPersistResults(race: {
+  id: string;
+  round: number;
+  api_meeting_id: string | null;
+}): Promise<{ qualifying: number; race: number }> {
+  let payload: RaceResultsPayload;
+  if (race.api_meeting_id) {
+    payload = await fetchOpenF1Results(race.api_meeting_id, race.round);
+    payload.qualifying = (await mapOpenF1ResultDriverIds(
+      race.api_meeting_id,
+      payload.qualifying,
+    )) as RaceResultsPayload["qualifying"];
+    payload.race = (await mapOpenF1ResultDriverIds(
+      race.api_meeting_id,
+      payload.race,
+    )) as RaceResultsPayload["race"];
+  } else {
+    payload = await fetchJolpicaResults(ACTIVE_SEASON_ID, race.round);
+  }
+  const counts = await persistResults(race.id, payload);
+  if (counts.race > 0) await recalculateRacePoints(race.id);
+  return counts;
+}
+
+/**
+ * Force re-fetch and overwrite results for a single race — bypasses the
+ * "completed & has results" skip. Used to correct races imported with the old
+ * sprint-session bug.
+ */
+export async function resyncRaceResults(
+  raceId: string,
+): Promise<{ qualifying: number; race: number }> {
+  const admin = createAdminClient();
+  const { data: race, error } = await admin
+    .from("races")
+    .select("id, round, api_meeting_id")
+    .eq("id", raceId)
+    .maybeSingle();
+  if (error) throw new Error(error.message);
+  if (!race) throw new Error("Race not found");
+  return fetchAndPersistResults(race);
+}
+
 async function syncResults(): Promise<SyncJobResult> {
   const admin = createAdminClient();
   const { data: races, error } = await admin
