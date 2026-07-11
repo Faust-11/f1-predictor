@@ -161,6 +161,14 @@ export function StandingsCard({
                           >
                             <div className="flex items-center gap-2">
                               <PositionBadge position={row.position} />
+                              <span
+                                className="h-7 w-1 shrink-0 rounded-full bg-border"
+                                style={
+                                  row.teamColor
+                                    ? { backgroundColor: row.teamColor }
+                                    : undefined
+                                }
+                              />
                               <Avatar className="size-7 shrink-0">
                                 {row.photoUrl && (
                                   <AvatarImage
