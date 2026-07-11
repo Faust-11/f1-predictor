@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 
-import { runSync } from "@/lib/api/sync";
+import { resyncRaceResults, runSync } from "@/lib/api/sync";
 import type { SyncScope } from "@/lib/api/normalized";
 import { adminSessionToken, isAdminAuthenticated } from "@/lib/admin/auth";
 import { ADMIN_COOKIE, USER_ID_COOKIE_MAX_AGE } from "@/lib/constants";
@@ -61,6 +61,27 @@ export async function runAdminSync(scope: SyncScope): Promise<AdminResult> {
       : { ok: false, error: results.map((r) => r.message).join("; ") };
   } catch (error) {
     return { ok: false, error: error instanceof Error ? error.message : "Sync failed" };
+  }
+}
+
+export async function resyncResults(raceId: string): Promise<AdminResult> {
+  if (!(await requireAdmin())) return { ok: false, error: "Немає доступу." };
+  try {
+    const counts = await resyncRaceResults(raceId);
+    revalidatePath("/");
+    revalidatePath(`/race/${raceId}`);
+    revalidatePath(`/qualifying/${raceId}`);
+    revalidatePath("/leaderboard");
+    revalidatePath("/admin");
+    return {
+      ok: true,
+      message: `Кваліфікація: ${counts.qualifying}, Гонка: ${counts.race}`,
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "Помилка пересинку",
+    };
   }
 }
 
