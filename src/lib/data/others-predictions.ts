@@ -1,9 +1,18 @@
-import { ACTIVE_SEASON_ID } from "@/lib/constants";
+import { ACTIVE_SEASON_ID, PREDICTION_LOCK_MINUTES } from "@/lib/constants";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   mapPayloadRowToDomain,
   type PredictionRow,
 } from "@/types/prediction";
+
+const LOCK_MS = PREDICTION_LOCK_MINUTES * 60 * 1000;
+
+/** True once predictions for a session are closed (start − lock). Unknown start time = still hidden. */
+function isClosed(startIso: string | null | undefined, now = Date.now()): boolean {
+  if (!startIso) return false;
+  const start = new Date(startIso).getTime();
+  return !Number.isNaN(start) && now >= start - LOCK_MS;
+}
 
 export type PredictionSession = "race" | "qualifying";
 
@@ -34,6 +43,17 @@ export async function getOthersPredictions(
   excludeUserId: string | null,
 ): Promise<OtherPrediction[]> {
   const admin = createAdminClient();
+
+  // Never reveal picks while the session is still open for predictions.
+  const { data: race, error: raceError } = await admin
+    .from("races")
+    .select("qualifying_at_utc, race_at_utc")
+    .eq("id", raceId)
+    .maybeSingle();
+  if (raceError) throw new Error(raceError.message);
+  const startIso =
+    session === "qualifying" ? race?.qualifying_at_utc : race?.race_at_utc;
+  if (!isClosed(startIso)) return [];
 
   const [predsRes, usersRes, driversRes, teamsRes] = await Promise.all([
     admin.from("predictions").select("*").eq("race_id", raceId),
@@ -166,7 +186,7 @@ export async function getPlayersPredictions(): Promise<
     admin.from("predictions").select("*"),
     admin
       .from("races")
-      .select("id, name, round")
+      .select("id, name, round, race_at_utc")
       .eq("season_id", ACTIVE_SEASON_ID),
     admin
       .from("drivers")
@@ -201,8 +221,14 @@ export async function getPlayersPredictions(): Promise<
 
   // Group race_* predictions by user, then race.
   const byUserRace = new Map<string, Map<string, PredictionRow[]>>();
+  // Only races whose prediction window has closed — open picks stay private.
+  const closedRaces = new Set(
+    (racesRes.data ?? [])
+      .filter((r) => isClosed(r.race_at_utc))
+      .map((r) => r.id),
+  );
   for (const row of (predsRes.data ?? []) as PredictionRow[]) {
-    if (!row.type.startsWith("race")) continue;
+    if (!row.type.startsWith("race") || !closedRaces.has(row.race_id)) continue;
     const races = byUserRace.get(row.user_id) ?? new Map();
     const list = races.get(row.race_id) ?? [];
     list.push(row);

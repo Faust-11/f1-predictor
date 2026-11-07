@@ -1,21 +1,14 @@
-import { createServerClient, getServerUserId } from "@/lib/supabase/server";
-import { mapUserRow, type User } from "@/types/user";
+import { getSessionPlayer } from "@/lib/supabase/server";
+import type { User } from "@/types/user";
 
-/** Current anonymous user's row (RLS scopes to own id). Null if not yet created. */
-export async function getCurrentUser(): Promise<User | null> {
-  const userId = await getServerUserId();
-  if (!userId) return null;
-
-  const supabase = await createServerClient();
-  const { data, error } = await supabase
-    .from("users")
-    .select("*")
-    .eq("id", userId)
-    .maybeSingle();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  return data ? mapUserRow(data) : null;
+/** Current signed-in player, or null for guests. */
+export async function getCurrentUser(): Promise<(User & { email: string | null }) | null> {
+  const player = await getSessionPlayer();
+  if (!player) return null;
+  return {
+    id: player.id,
+    displayName: player.displayName,
+    email: player.email,
+    createdAt: "",
+  };
 }

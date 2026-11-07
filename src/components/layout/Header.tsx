@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { AuthButton } from "@/components/auth/AuthButton";
 import { Navbar } from "@/components/layout/Navbar";
 import { ThemeToggle } from "@/components/layout/ThemeToggle";
 import { strings } from "@/lib/i18n/strings";
@@ -26,6 +27,7 @@ export function Header() {
         <div className="flex items-center gap-1">
           <Navbar />
           <ThemeToggle />
+          <AuthButton />
         </div>
       </div>
     </header>

@@ -207,3 +207,97 @@ export async function saveManualResults(input: {
   revalidatePath("/leaderboard");
   return { ok: true, message: "Результати збережено." };
 }
+
+export interface PlayerAccountRow {
+  id: string;
+  displayName: string | null;
+  email: string | null;
+  predictions: number;
+}
+
+/** Players for the account-linking panel: legacy (cookie) vs Google accounts. */
+export async function getPlayerAccounts(): Promise<{
+  legacy: PlayerAccountRow[];
+  google: PlayerAccountRow[];
+} | null> {
+  if (!(await requireAdmin())) return null;
+  const admin = createAdminClient();
+  const [usersRes, predsRes] = await Promise.all([
+    admin.from("users").select("id, display_name, email, auth_user_id"),
+    admin.from("predictions").select("user_id"),
+  ]);
+  if (usersRes.error) throw new Error(usersRes.error.message);
+  if (predsRes.error) throw new Error(predsRes.error.message);
+
+  const counts = new Map<string, number>();
+  for (const p of predsRes.data ?? []) {
+    counts.set(p.user_id, (counts.get(p.user_id) ?? 0) + 1);
+  }
+  const legacy: PlayerAccountRow[] = [];
+  const google: PlayerAccountRow[] = [];
+  for (const u of usersRes.data ?? []) {
+    const row = {
+      id: u.id,
+      displayName: u.display_name,
+      email: u.email,
+      predictions: counts.get(u.id) ?? 0,
+    };
+    (u.auth_user_id ? google : legacy).push(row);
+  }
+  return { legacy, google };
+}
+
+/**
+ * Moves a Google sign-in onto an existing legacy player so their predictions
+ * and points are kept. The Google player row must still be empty.
+ */
+export async function linkLegacyPlayer(
+  legacyId: string,
+  googlePlayerId: string,
+): Promise<AdminResult> {
+  if (!(await requireAdmin())) return { ok: false, error: "Немає доступу." };
+  const admin = createAdminClient();
+
+  const [legacyRes, googleRes, predsRes] = await Promise.all([
+    admin.from("users").select("id, auth_user_id").eq("id", legacyId).maybeSingle(),
+    admin
+      .from("users")
+      .select("id, auth_user_id, email")
+      .eq("id", googlePlayerId)
+      .maybeSingle(),
+    admin
+      .from("predictions")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", googlePlayerId),
+  ]);
+
+  const legacy = legacyRes.data;
+  const google = googleRes.data;
+  if (!legacy || legacy.auth_user_id) {
+    return { ok: false, error: "Старого гравця не знайдено або він уже прив'язаний." };
+  }
+  if (!google?.auth_user_id) {
+    return { ok: false, error: "Google-акаунт не знайдено." };
+  }
+  if ((predsRes.count ?? 0) > 0) {
+    return { ok: false, error: "У Google-акаунта вже є прогнози — автоматичне злиття вимкнене." };
+  }
+
+  // Free the unique auth_user_id first, then attach it to the legacy player.
+  const del = await admin.from("users").delete().eq("id", google.id);
+  if (del.error) return { ok: false, error: del.error.message };
+  const upd = await admin
+    .from("users")
+    .update({ auth_user_id: google.auth_user_id, email: google.email })
+    .eq("id", legacy.id);
+  if (upd.error) {
+    return {
+      ok: false,
+      error: `Не вдалося прив'язати (${upd.error.message}). Гравцю достатньо увійти ще раз.`,
+    };
+  }
+
+  revalidatePath("/admin");
+  revalidatePath("/leaderboard");
+  return { ok: true, message: "Акаунт прив'язано." };
+}

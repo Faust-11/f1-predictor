@@ -1,29 +1,36 @@
+import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import {
-  USER_ID_COOKIE,
-  USER_ID_COOKIE_MAX_AGE,
-} from "@/lib/constants";
+/**
+ * Refreshes the Supabase Auth session cookies on every request so Server
+ * Components always see a valid session (official @supabase/ssr pattern).
+ */
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({ request });
 
-export function middleware(request: NextRequest) {
-  const existingUserId = request.cookies.get(USER_ID_COOKIE)?.value;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return response;
 
-  if (existingUserId) {
-    return NextResponse.next();
-  }
-
-  const userId = crypto.randomUUID();
-  const response = NextResponse.next();
-
-  response.cookies.set({
-    name: USER_ID_COOKIE,
-    value: userId,
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: USER_ID_COOKIE_MAX_AGE,
+  const supabase = createServerClient(url, key, {
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet) {
+        for (const { name, value } of cookiesToSet) {
+          request.cookies.set(name, value);
+        }
+        response = NextResponse.next({ request });
+        for (const { name, value, options } of cookiesToSet) {
+          response.cookies.set(name, value, options);
+        }
+      },
+    },
   });
+
+  // Do not remove: validates and refreshes the auth token.
+  await supabase.auth.getUser();
 
   return response;
 }

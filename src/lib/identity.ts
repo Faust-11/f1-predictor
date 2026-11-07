@@ -1,43 +1,40 @@
-import { cookies } from "next/headers";
+import type { User as AuthUser } from "@supabase/supabase-js";
 
-import { USER_ID_COOKIE } from "@/lib/constants";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createServerClient } from "@/lib/supabase/server";
 
-export async function getUserIdFromCookies(): Promise<string | undefined> {
-  const cookieStore = await cookies();
-  return cookieStore.get(USER_ID_COOKIE)?.value;
-}
-
-/** Ensures a users row exists for the anonymous cookie id (lazy registration). */
-export async function ensureUserExists(userId: string): Promise<void> {
+/**
+ * Ensures a player row exists for a verified Supabase Auth user (called from
+ * the OAuth callback). Creates it with the Google name and email; keeps the
+ * email in sync on later sign-ins. Server-only (service role).
+ */
+export async function ensurePlayerForAuthUser(user: AuthUser): Promise<void> {
   const admin = createAdminClient();
-  const { error } = await admin.from("users").upsert(
-    { id: userId },
-    { onConflict: "id", ignoreDuplicates: true },
-  );
+  const email = user.email ?? null;
 
-  if (error) {
-    throw new Error(`Failed to ensure user exists: ${error.message}`);
+  const { data: existing, error: findError } = await admin
+    .from("users")
+    .select("id, email")
+    .eq("auth_user_id", user.id)
+    .maybeSingle();
+  if (findError) throw new Error(findError.message);
+
+  if (existing) {
+    if (existing.email !== email) {
+      await admin.from("users").update({ email }).eq("id", existing.id);
+    }
+    return;
   }
-}
 
-/** Returns user id from cookie and ensures the users row exists. */
-export async function getOrCreateUserId(): Promise<string | undefined> {
-  const userId = await getUserIdFromCookies();
-  if (!userId) {
-    return undefined;
-  }
+  const meta = user.user_metadata ?? {};
+  const googleName =
+    (typeof meta.full_name === "string" && meta.full_name) ||
+    (typeof meta.name === "string" && meta.name) ||
+    null;
 
-  await ensureUserExists(userId);
-  return userId;
-}
-
-/** Server client scoped to the current anonymous user (RLS via x-user-id header). */
-export async function getAuthenticatedServerClient() {
-  const userId = await getOrCreateUserId();
-  if (!userId) {
-    throw new Error("Anonymous user cookie is missing");
-  }
-  return await createServerClient();
+  const { error } = await admin.from("users").insert({
+    auth_user_id: user.id,
+    email,
+    display_name: googleName,
+  });
+  if (error) throw new Error(error.message);
 }

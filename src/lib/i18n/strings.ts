@@ -61,6 +61,8 @@ export const strings = {
     seconds: "сек",
   },
   predictions: {
+    othersHiddenUntilDeadline:
+      "Прогнози інших гравців з'являться після закриття прийому прогнозів.",
     save: "Зберегти прогноз",
     saved: "Прогноз збережено!",
     saveFailed: "Не вдалося зберегти прогноз. Спробуйте ще раз.",
@@ -169,6 +171,15 @@ export const strings = {
     placeholder: "Введіть ваше ім'я",
     description:
       "Це ім'я бачитимуть інші користувачі у рейтингу. Його можна змінити будь-коли.",
+  },
+  auth: {
+    signIn: "Увійти через Google",
+    signOut: "Вийти",
+    signInRequired: "Увійдіть через Google, щоб зберігати прогнози.",
+    signInPrompt:
+      "Щоб робити прогнози й потрапити в рейтинг, увійдіть через Google. Ми зберігаємо лише ваше ім'я та email.",
+    authError: "Не вдалося увійти. Спробуйте ще раз.",
+    email: "Email",
   },
   states: {
     loading: "Завантаження…",

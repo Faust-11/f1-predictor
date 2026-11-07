@@ -1,5 +1,6 @@
 import { CalendarX } from "lucide-react";
 
+import { SignInPrompt } from "@/components/auth/SignInPrompt";
 import { PredictionGrid } from "@/components/prediction/PredictionGrid";
 import { PredictionHeader } from "@/components/prediction/PredictionHeader";
 import { PointsBreakdown } from "@/components/results/PointsBreakdown";
@@ -46,6 +47,7 @@ export default async function QualifyingPage({
   let drivers: DriverWithTeam[];
   let predictions: Prediction[] = [];
   let hasDisplayName = false;
+  let isSignedIn = false;
 
   try {
     const [driversData, predictionsData, user] = await Promise.all([
@@ -56,6 +58,7 @@ export default async function QualifyingPage({
     drivers = driversData;
     predictions = predictionsData;
     hasDisplayName = Boolean(user?.displayName);
+    isSignedIn = Boolean(user);
   } catch {
     return <ErrorState />;
   }
@@ -121,6 +124,8 @@ export default async function QualifyingPage({
         <EmptyState message={strings.states.driversEmpty} />
       ) : locked && noSavedPrediction ? (
         <EmptyState message={strings.predictions.deadlinePassed} />
+      ) : !isSignedIn && !locked ? (
+        <SignInPrompt next={`/qualifying/${race.id}`} />
       ) : (
         <PredictionGrid
           kind="qualifying"

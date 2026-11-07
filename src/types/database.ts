@@ -262,16 +262,22 @@ export interface Database {
           id: string;
           display_name: string | null;
           created_at: string;
+          auth_user_id: string | null;
+          email: string | null;
         };
         Insert: {
           id?: string;
           display_name?: string | null;
           created_at?: string;
+          auth_user_id?: string | null;
+          email?: string | null;
         };
         Update: {
           id?: string;
           display_name?: string | null;
           created_at?: string;
+          auth_user_id?: string | null;
+          email?: string | null;
         };
         Relationships: [];
       };

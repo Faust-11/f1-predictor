@@ -2,7 +2,6 @@
 
 import { revalidatePath } from "next/cache";
 
-import { ensureUserExists } from "@/lib/identity";
 import { strings } from "@/lib/i18n/strings";
 import { PODIUM_SLOTS, TOP10_SLOTS } from "@/lib/constants";
 import { createServerClient, getServerUserId } from "@/lib/supabase/server";
@@ -48,7 +47,7 @@ export async function savePrediction(
 ): Promise<SaveResult> {
   const userId = await getServerUserId();
   if (!userId) {
-    return { ok: false, error: strings.predictions.saveFailed };
+    return { ok: false, error: strings.auth.signInRequired };
   }
 
   if (!validatePayload(input.type, input.payload)) {
@@ -56,8 +55,6 @@ export async function savePrediction(
   }
 
   try {
-    await ensureUserExists(userId);
-
     const supabase = await createServerClient();
 
     const trimmedName = input.displayName?.trim();

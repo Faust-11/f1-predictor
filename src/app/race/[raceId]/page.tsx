@@ -3,6 +3,7 @@ import { CalendarX } from "lucide-react";
 import { PredictionGrid } from "@/components/prediction/PredictionGrid";
 import { PredictionHeader } from "@/components/prediction/PredictionHeader";
 import { Highlights } from "@/components/race/Highlights";
+import { SignInPrompt } from "@/components/auth/SignInPrompt";
 import { OthersPredictions } from "@/components/prediction/OthersPredictions";
 import { PointsBreakdown } from "@/components/results/PointsBreakdown";
 import { ResultsTable } from "@/components/results/ResultsTable";
@@ -71,11 +72,12 @@ export default async function RacePage({
     return <ErrorState />;
   }
 
-  const others = await getOthersPredictions(raceId, "race", currentUserId).catch(
-    () => [],
-  );
-
   const locked = isPredictionLocked(race, "race");
+  // Others' picks are revealed only after the deadline (also enforced inside
+  // getOthersPredictions), so nobody can copy them while predictions are open.
+  const others = locked
+    ? await getOthersPredictions(raceId, "race", currentUserId).catch(() => [])
+    : [];
   const initial = deriveInitialFormState(predictions, "race");
   const racePredictions = predictions.filter((p) => p.type.startsWith("race"));
 
@@ -149,6 +151,8 @@ export default async function RacePage({
         <EmptyState message={strings.states.driversEmpty} />
       ) : locked && noSavedPrediction ? (
         <EmptyState message={strings.predictions.deadlinePassed} />
+      ) : !currentUserId && !locked ? (
+        <SignInPrompt next={`/race/${race.id}`} />
       ) : (
         <PredictionGrid
           kind="race"
@@ -167,7 +171,13 @@ export default async function RacePage({
         <h2 className="font-heading text-lg font-bold">
           {strings.predictions.othersTitle}
         </h2>
-        <OthersPredictions items={others} />
+        {locked ? (
+          <OthersPredictions items={others} />
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            {strings.predictions.othersHiddenUntilDeadline}
+          </p>
+        )}
       </section>
     </div>
   );
