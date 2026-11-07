@@ -1,10 +1,12 @@
-name: F1 history — load Jolpica dump
+name: F1 history — dump + fresh races
 
-# Щотижня підтягує свіжий безкоштовний дамп Jolpica (затримка 14 днів) у схему f1.
+# 1) свіжий безкоштовний дамп Jolpica (затримка ~14 днів) у схему f1;
+# 2) догрузка гонок, що завершились після дампу, з API Jolpica.
 # Потрібен секрет репозиторію DATABASE_URL (Supabase → Connect → Session pooler).
 on:
   schedule:
-    - cron: "30 4 * * 2"   # вівторок 04:30 UTC — після гоночних вихідних
+    - cron: "0 6 * * 1"    # понеділок 06:00 UTC — після гоночних вихідних
+    - cron: "0 6 * * 4"    # четвер — на випадок пізніх змін результатів
   workflow_dispatch: {}
 
 permissions:
@@ -24,3 +26,7 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: python scripts/jolpica/load_dump.py --download --skip-if-loaded
+      - name: Top up races finished after the dump
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: python scripts/jolpica/topup_api.py
