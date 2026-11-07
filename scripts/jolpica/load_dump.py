@@ -22,15 +22,19 @@ import hashlib
 import io
 import json
 import os
+import re
 import sys
 import time
 import urllib.request
 import zipfile
 
 import psycopg
+from psycopg import sql
 
 API = "https://api.jolpi.ca/data/dumps/download/"
 USER_AGENT = "Slipstream/0.1 (+https://the-slipstream.vercel.app)"
+ALLOWED_DOWNLOAD_PREFIX = "https://api.jolpi.ca/"
+COLUMN_RE = re.compile(r"^[a-z_][a-z0-9_]{0,62}$")
 
 TABLES = [
     "season", "championshipsystem", "circuit", "driver", "team", "round", "teamdriver",
@@ -52,6 +56,8 @@ def download_dump() -> tuple[bytes, dict]:
     info = json.loads(http_get(API))
     meta = info["delayed_dumps"]["csv"]
     log(f"downloading delayed CSV dump uploaded {meta['uploaded_at']} ({meta['file_size']:,} bytes)")
+    if not str(meta["download_url"]).startswith(ALLOWED_DOWNLOAD_PREFIX):
+        sys.exit(f"Refusing unexpected download URL: {meta['download_url']!r}")
     data = http_get(meta["download_url"])
     digest = hashlib.sha256(data).hexdigest()
     if digest != meta["file_hash"]:
@@ -65,11 +71,16 @@ def stage(cur: psycopg.Cursor, zf: zipfile.ZipFile) -> dict[str, int]:
     for name in TABLES:
         raw = zf.read(f"formula_one_{name}.csv")
         header = next(csv.reader(io.StringIO(raw.split(b"\n", 1)[0].decode("utf-8"))))
-        cols = ", ".join(f'"{c}" text' for c in header)
-        cur.execute(f"create temp table stg_{name} ({cols}) on commit drop")
-        with cur.copy(f"copy stg_{name} from stdin with (format csv, header true)") as cp:
+        # Column names come from a downloaded file: validate, then quote as identifiers.
+        bad = [c for c in header if not COLUMN_RE.match(c)]
+        if bad or len(set(header)) != len(header):
+            sys.exit(f"Unexpected column names in formula_one_{name}.csv: {bad or header!r}")
+        table = sql.Identifier(f"stg_{name}")
+        cols = sql.SQL(", ").join(sql.SQL("{} text").format(sql.Identifier(c)) for c in header)
+        cur.execute(sql.SQL("create temp table {} ({}) on commit drop").format(table, cols))
+        with cur.copy(sql.SQL("copy {} from stdin with (format csv, header true)").format(table)) as cp:
             cp.write(raw)
-        cur.execute(f"select count(*) from stg_{name}")
+        cur.execute(sql.SQL("select count(*) from {}").format(table))
         counts[name] = cur.fetchone()[0]
         log(f"staged {name}: {counts[name]:,} rows")
     return counts
