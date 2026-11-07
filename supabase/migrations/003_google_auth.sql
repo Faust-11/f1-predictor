@@ -60,6 +60,7 @@ create policy "predictions_insert_own"
   with check (
     user_id = public.request_user_id()
     and public.is_prediction_before_deadline(race_id, type)
+    and points is null
   );
 
 create policy "predictions_update_own"
@@ -77,5 +78,6 @@ create policy "predictions_update_own"
 revoke insert, update, delete on predictions from anon;
 -- points рахує лише сервер. upsert (on conflict do update) переписує всі передані колонки,
 -- тому дозволяємо їх, а user_id/race_id додатково обмежені політиками вище.
-revoke update on predictions from authenticated;
+revoke insert, update on predictions from authenticated;
+grant insert (user_id, race_id, type, payload) on predictions to authenticated;
 grant update (user_id, race_id, type, payload, updated_at) on predictions to authenticated;
